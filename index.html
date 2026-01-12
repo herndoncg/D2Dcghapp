@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CGH Field App — Demo</title>
+  <meta name="description" content="CGH Door-to-Door Field App demo (single-file HTML)." />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2e;
+      --panel2:#111f38;
+      --text:#e8eefc;
+      --muted:#a9b7d6;
+      --line:rgba(255,255,255,.10);
+      --accent:#2f7cf6;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --info:#60a5fa;
+      --radius:16px;
+      --shadow:0 12px 30px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:radial-gradient(1200px 900px at 20% 0%, rgba(47,124,246,.22), transparent 60%),
+                 radial-gradient(1200px 900px at 90% 10%, rgba(34,197,94,.12), transparent 55%),
+                 var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(17,31,56,.85), rgba(15,26,46,.85));
+      box-shadow:var(--shadow);
+      position:sticky;top:12px;z-index:10;backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:40px;height:40px;border-radius:12px;
+      background:linear-gradient(135deg, rgba(47,124,246,.95), rgba(96,165,250,.6));
+      border:1px solid rgba(255,255,255,.18);
+      display:grid;place-items:center;font-weight:800;letter-spacing:.5px;
+    }
+    .brand h1{font-size:14px;line-height:1.1;margin:0}
+    .brand p{margin:0;color:var(--muted);font-size:12px}
+
+    .row{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
+    @media (max-width: 920px){
+      .row{grid-template-columns:1fr}
+    }
+
+    .card{
+      border:1px solid var(--line);border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(17,31,56,.78), rgba(15,26,46,.85));
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:10px
+    }
+    .card .hd .title{font-weight:700;font-size:14px}
+    .card .bd{padding:16px}
+
+    .pill{
+      font-size:12px;color:var(--muted);
+      border:1px solid var(--line);padding:6px 10px;border-radius:999px;
+      background:rgba(255,255,255,.04)
+    }
+
+    .btn{
+      appearance:none;border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);padding:10px 12px;border-radius:12px;
+      font-weight:650;cursor:pointer;
+      display:inline-flex;align-items:center;gap:8px;
+      transition:transform .05s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    .btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.20)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:rgba(47,124,246,.22);border-color:rgba(47,124,246,.55)}
+    .btn.primary:hover{background:rgba(47,124,246,.28)}
+    .btn.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.45)}
+
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:520px){.grid2{grid-template-columns:1fr}}
+
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    .in{
+      width:100%;padding:10px 12px;border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.18);
+      color:var(--text);outline:none;
+    }
+    .in:focus{border-color:rgba(47,124,246,.7);box-shadow:0 0 0 3px rgba(47,124,246,.18)}
+    .hint{font-size:12px;color:var(--muted);line-height:1.4}
+
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 10px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.04);cursor:pointer;color:var(--muted);font-weight:650;font-size:12px}
+    .tab.active{background:rgba(47,124,246,.20);border-color:rgba(47,124,246,.55);color:var(--text)}
+
+    .map{
+      height:440px;border-radius:14px;border:1px dashed rgba(255,255,255,.18);
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.18)),
+        radial-gradient(700px 400px at 30% 30%, rgba(96,165,250,.18), transparent 60%),
+        radial-gradient(700px 400px at 70% 60%, rgba(34,197,94,.10), transparent 60%),
+        rgba(255,255,255,.03);
+      position:relative;overflow:hidden
+    }
+    .map .overlay{
+      position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;
+      padding:14px;justify-content:flex-end
+    }
+    .map .banner{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.35);
+      border-radius:14px;padding:12px
+    }
+    .map .banner .big{font-weight:800}
+    .map .banner code{font-family:var(--mono);font-size:12px;color:#cfe0ff}
+
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.14);
+      border-radius:14px;padding:12px;
+      display:flex;gap:12px;align-items:flex-start;justify-content:space-between
+    }
+    .item .left{min-width:0}
+    .item .name{font-weight:800;margin:0 0 2px;font-size:13px}
+    .item .meta{font-size:12px;color:var(--muted);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .badge{font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);display:inline-flex;align-items:center;gap:6px}
+    .b-new{background:rgba(96,165,250,.14);border-color:rgba(96,165,250,.35)}
+    .b-quoted{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.35)}
+    .b-follow{background:rgba(168,85,247,.14);border-color:rgba(168,85,247,.35)}
+    .b-booked{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.32)}
+    .b-no{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.28)}
+    .b-not{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.28)}
+    .b-dnk{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.45)}
+
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:720px){.split{grid-template-columns:1fr}}
+
+    .totals{
+      border-top:1px solid var(--line);margin-top:12px;padding-top:12px
+    }
+    .totals .r{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:6px 0}
+    .totals .r strong{font-size:14px}
+
+    .footerbar{
+      position:sticky;bottom:12px;margin-top:16px;
+      border:1px solid var(--line);border-radius:var(--radius);
+      background:rgba(15,26,46,.88);
+      box-shadow:var(--shadow);
+      padding:10px 10px;display:flex;gap:8px;justify-content:space-between;align-items:center
+    }
+    .footerbar .left{display:flex;gap:8px;flex-wrap:wrap}
+
+    .notice{
+      border:1px solid rgba(47,124,246,.35);
+      background:rgba(47,124,246,.12);
+      border-radius:14px;padding:12px;color:#dbe8ff
+    }
+    .notice strong{display:block;margin-bottom:4px}
+
+    .hidden{display:none !important}
+
+    /* Modal */
+    .modal-back{
+      position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter: blur(6px);
+      display:none;align-items:center;justify-content:center;padding:18px;z-index:50
+    }
+    .modal{
+      width:min(820px, 100%);
+      border:1px solid rgba(255,255,255,.16);
+      background:linear-gradient(180deg, rgba(17,31,56,.92), rgba(15,26,46,.96));
+      border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55);
+      overflow:hidden
+    }
+    .modal .mh{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .modal .mb{padding:16px}
+    .modal .mh .t{font-weight:900}
+
+    .kbd{font-family:var(--mono);font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.18);color:#cfe0ff}
+
+    .small{font-size:12px;color:var(--muted)}
+
+    .hr{height:1px;background:var(--line);margin:12px 0}
+
+    .admin-only{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">CGH</div>
+        <div>
+          <h1>CGH Field App <span class="pill" id="envPill">Demo Mode</span></h1>
+          <p id="userLine">Not signed in</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn" id="btnOpenSetup">⚙️ Setup</button>
+        <button class="btn danger hidden" id="btnLogout">Log out</button>
+      </div>
+    </div>
+
+    <!-- LOGIN VIEW -->
+    <div id="viewLogin" class="row" style="margin-top:16px">
+      <div class="card">
+        <div class="hd"><div class="title">Login</div><span class="pill">Rep or Admin</span></div>
+        <div class="bd">
+          <div class="notice" style="margin-bottom:12px">
+            <strong>This is a working UI demo.</strong>
+            Logins are simulated right now so you can see the app and edit the flow. When you plug in Firebase Auth, this becomes real.
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label>Email</label>
+              <input class="in" id="loginEmail" placeholder="name@company.com" />
+            </div>
+            <div>
+              <label>Password</label>
+              <input class="in" id="loginPass" type="password" placeholder="••••••••" />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+            <button class="btn primary" id="btnLogin">Login</button>
+            <button class="btn" id="btnDemoAdmin">Demo as Admin</button>
+            <button class="btn" id="btnDemoRep">Demo as Rep</button>
+            <span class="small">Tip: Use <span class="kbd">admin</span> in email to auto-set Admin role.</span>
+          </div>
+
+          <div class="hr"></div>
+          <div class="hint">
+            <div><strong>Production wiring placeholders</strong></div>
+            <div>• Firebase Auth (email/password)</div>
+            <div>• Firestore (pins, quotes, services, users)</div>
+            <div>• Storage (photos)</div>
+            <div>• Google Maps API (real map + geocoding)</div>
+            <div>• Stripe Checkout (deposit / pay in full)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd"><div class="title">What this app does</div><span class="pill">Rep-proof</span></div>
+        <div class="bd">
+          <div class="list">
+            <div class="item">
+              <div class="left">
+                <div class="name">🗺 Map + Pins</div>
+                <p class="meta">Drop pins, track statuses, set follow-ups.</p>
+              </div>
+              <span class="badge b-new">Live</span>
+            </div>
+            <div class="item">
+              <div class="left">
+                <div class="name">📋 Quote Builder</div>
+                <p class="meta">Services + quantities + minimums + add-ons.</p>
+              </div>
+              <span class="badge b-quoted">Live</span>
+            </div>
+            <div class="item">
+              <div class="left">
+                <div class="name">💳 Payments</div>
+                <p class="meta">Deposit or full pay (Stripe placeholder).</p>
+              </div>
+              <span class="badge b-follow">Placeholder</span>
+            </div>
+            <div class="item">
+              <div class="left">
+                <div class="name">📸 Photos + 📚 Resources</div>
+                <p class="meta">Upload before/after and view training docs.</p>
+              </div>
+              <span class="badge b-no">Live UI</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP VIEW -->
+    <div id="viewApp" class="hidden" style="margin-top:16px">
+
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="map">🗺 Map</button>
+        <button class="tab" data-tab="quote">📋 Quote</button>
+        <button class="tab" data-tab="photos">📸 Photos</button>
+        <button class="tab" data-tab="resources">📚 Resources</button>
+        <button class="tab admin-only" data-tab="admin">⚙️ Admin</button>
+      </div>
+
+      <div class="row">
+
+        <!-- LEFT MAIN -->
+        <div class="card">
+          <div class="hd">
+            <div class="title" id="panelTitle">Map / Leads</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="pill" id="modePill">Rep View</span>
+              <button class="btn" id="btnAddPin">➕ Add Pin</button>
+            </div>
+          </div>
+          <div class="bd" id="panelBody">
+
+            <!-- MAP TAB -->
+            <div class="tabpane" id="tab-map">
+              <div class="grid2" style="margin-bottom:12px">
+                <div>
+                  <label>Search Address</label>
+                  <input class="in" id="searchAddress" placeholder="123 Main St, Longview TX" />
+                </div>
+                <div>
+                  <label>Filter Pins</label>
+                  <select class="in" id="filterStatus">
+                    <option value="">All statuses</option>
+                    <option value="New Lead">New Lead</option>
+                    <option value="Quoted">Quoted</option>
+                    <option value="Follow-Up Needed">Follow-Up Needed</option>
+                    <option value="Booked">Booked</option>
+                    <option value="No Answer">No Answer</option>
+                    <option value="Not Interested">Not Interested</option>
+                    <option value="Do Not Knock">Do Not Knock</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="map" id="map">
+                <div class="overlay">
+                  <div class="banner">
+                    <div class="big">Map Placeholder</div>
+                    <div class="small">Plug in Google Maps API later. For now, pins are shown in the right panel list.</div>
+                    <div class="small" style="margin-top:6px">Placeholder key: <code>GOOGLE_MAPS_API_KEY</code></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="notice" style="margin-top:12px">
+                <strong>Field Flow</strong>
+                Drop a pin → set status → add notes → create quote → collect deposit.
+              </div>
+            </div>
+
+            <!-- QUOTE TAB -->
+            <div class="tabpane hidden" id="tab-quote">
+              <div class="split">
+                <div>
+                  <div class="title" style="margin-bottom:8px">Customer</div>
+                  <div class="grid2">
+                    <div>
+                      <label>Name</label>
+                      <input class="in" id="qCustomer" placeholder="Customer name" />
+                    </div>
+                    <div>
+                      <label>Phone</label>
+                      <input class="in" id="qPhone" placeholder="903-___-____" />
+                    </div>
+                  </div>
+                  <div style="margin-top:10px">
+                    <label>Address</label>
+                    <input class="in" id="qAddress" placeholder="Street, City, State" />
+                  </div>
+
+                  <div class="hr"></div>
+
+                  <div class="title" style="margin-bottom:8px">Services</div>
+                  <div class="hint" style="margin-bottom:8px">Select a service, enter quantity, it auto-calculates. Minimums are enforced.</div>
+
+                  <div class="grid2">
+                    <div>
+                      <label>Service</label>
+                      <select class="in" id="svcSelect"></select>
+                    </div>
+                    <div>
+                      <label>Quantity</label>
+                      <input class="in" id="svcQty" type="number" min="0" step="0.01" placeholder="e.g., 1800" />
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+                    <button class="btn primary" id="btnAddService">Add Service</button>
+                    <button class="btn" id="btnClearQuote">Clear</button>
+                  </div>
+
+                  <div class="hr"></div>
+
+                  <div class="title" style="margin-bottom:8px">Add-ons / Extras</div>
+                  <div class="grid2">
+                    <div>
+                      <label>Preset Add-on</label>
+                      <select class="in" id="addonSelect"></select>
+                    </div>
+                    <div>
+                      <label>Amount ($)</label>
+                      <input class="in" id="addonAmt" type="number" min="0" step="0.01" placeholder="auto" />
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+                    <button class="btn" id="btnAddAddon">Add Preset</button>
+                  </div>
+
+                  <div class="grid2" style="margin-top:10px">
+                    <div>
+                      <label>Custom Add-on Description</label>
+                      <input class="in" id="customDesc" placeholder="e.g., Heavy algae on north side" />
+                    </div>
+                    <div>
+                      <label>Custom Add-on Amount ($)</label>
+                      <input class="in" id="customAmt" type="number" min="0" step="0.01" placeholder="e.g., 75" />
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+                    <button class="btn" id="btnAddCustom">Add Custom</button>
+                  </div>
+
+                </div>
+
+                <div>
+                  <div class="title" style="margin-bottom:8px">Quote Summary</div>
+                  <div class="card" style="box-shadow:none">
+                    <div class="bd">
+                      <div id="quoteLines" class="list"></div>
+
+                      <div class="totals">
+                        <div class="r"><span class="small">Subtotal</span><span id="subTotal">$0.00</span></div>
+                        <div class="r"><span class="small">Tax</span><span class="small">(placeholder)</span></div>
+                        <div class="r"><strong>Total</strong><strong id="grandTotal">$0.00</strong></div>
+                      </div>
+
+                      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                        <button class="btn primary" id="btnSaveQuote">Save Quote</button>
+                        <button class="btn" id="btnDeposit">Collect Deposit</button>
+                        <button class="btn" id="btnPayFull">Pay in Full</button>
+                      </div>
+
+                      <div class="hint" style="margin-top:10px">
+                        Payments are placeholders right now.
+                        Plug in Stripe Checkout via serverless function later.
+                        Placeholder keys: <span class="kbd">STRIPE_PUBLIC_KEY</span> + server-side <span class="kbd">STRIPE_SECRET_KEY</span>.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="notice" style="margin-top:12px">
+                    <strong>Admin-controlled pricing</strong>
+                    Reps only choose service + quantity + add-ons.
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- PHOTOS TAB -->
+            <div class="tabpane hidden" id="tab-photos">
+              <div class="notice" style="margin-bottom:12px">
+                <strong>Photo Upload (UI Demo)</strong>
+                In production, uploads go to Firebase Storage (or your choice). For now this stores filenames in local storage.
+              </div>
+
+              <div class="grid2">
+                <div>
+                  <label>Attach to</label>
+                  <select class="in" id="photoAttach">
+                    <option value="General">General</option>
+                    <option value="Pin">Pin</option>
+                    <option value="Quote">Quote</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Before/After</label>
+                  <select class="in" id="photoType">
+                    <option value="Before">Before</option>
+                    <option value="After">After</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-top:10px">
+                <label>Notes</label>
+                <input class="in" id="photoNotes" placeholder="e.g., driveway oil stain, north corner" />
+              </div>
+
+              <div style="margin-top:10px">
+                <label>Select file</label>
+                <input class="in" id="photoFile" type="file" />
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                <button class="btn primary" id="btnUploadPhoto">Upload</button>
+                <button class="btn" id="btnClearPhotos">Clear List</button>
+              </div>
+
+              <div class="hr"></div>
+              <div class="title" style="margin-bottom:8px">Recent Uploads</div>
+              <div id="photoList" class="list"></div>
+
+              <div class="hint" style="margin-top:10px">
+                Production placeholder: <span class="kbd">FIREBASE_STORAGE_BUCKET</span>
+              </div>
+            </div>
+
+            <!-- RESOURCES TAB -->
+            <div class="tabpane hidden" id="tab-resources">
+              <div class="notice" style="margin-bottom:12px">
+                <strong>Resources Library</strong>
+                This is where you store D2D scripts, objection handling, pricing notes, and portfolio examples.
+              </div>
+
+              <div class="grid2">
+                <div>
+                  <label>Category</label>
+                  <select class="in" id="resCat">
+                    <option>D2D Scripts</option>
+                    <option>Objection Handling</option>
+                    <option>Pricing Guidelines</option>
+                    <option>Portfolio / Examples</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Title</label>
+                  <input class="in" id="resTitle" placeholder="e.g., Top 10 Objections — Quick Hits" />
+                </div>
+              </div>
+              <div style="margin-top:10px">
+                <label>Content / Link</label>
+                <input class="in" id="resBody" placeholder="Paste a note or a link to a PDF" />
+              </div>
+              <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                <button class="btn primary" id="btnAddRes">Add Resource</button>
+                <button class="btn" id="btnClearRes">Clear Library</button>
+              </div>
+
+              <div class="hr"></div>
+              <div class="title" style="margin-bottom:8px">Library</div>
+              <div id="resList" class="list"></div>
+            </div>
+
+            <!-- ADMIN TAB -->
+            <div class="tabpane hidden" id="tab-admin">
+              <div class="notice" style="margin-bottom:12px">
+                <strong>Admin Control Panel</strong>
+                Update services, rates, minimums, and preset add-ons. Reps can’t change pricing.
+              </div>
+
+              <div class="split">
+                <div>
+                  <div class="title" style="margin-bottom:8px">Services</div>
+                  <div class="grid2">
+                    <div>
+                      <label>Service Name</label>
+                      <input class="in" id="aSvcName" placeholder="e.g., House Wash" />
+                    </div>
+                    <div>
+                      <label>Unit Type</label>
+                      <select class="in" id="aSvcUnit">
+                        <option value="sqft">sqft</option>
+                        <option value="linear_ft">linear ft</option>
+                        <option value="each">each</option>
+                        <option value="hour">hour</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="grid2" style="margin-top:10px">
+                    <div>
+                      <label>Rate ($ per unit)</label>
+                      <input class="in" id="aSvcRate" type="number" min="0" step="0.0001" placeholder="e.g., 0.18" />
+                    </div>
+                    <div>
+                      <label>Minimum ($)</label>
+                      <input class="in" id="aSvcMin" type="number" min="0" step="0.01" placeholder="e.g., 249" />
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                    <button class="btn primary" id="btnAdminAddSvc">Add/Update Service</button>
+                    <button class="btn" id="btnAdminResetSvc">Reset Defaults</button>
+                  </div>
+                  <div class="hr"></div>
+                  <div id="svcAdminList" class="list"></div>
+                </div>
+
+                <div>
+                  <div class="title" style="margin-bottom:8px">Preset Add-ons</div>
+                  <div class="grid2">
+                    <div>
+                      <label>Add-on Name</label>
+                      <input class="in" id="aAddName" placeholder="e.g., Heavy Buildup" />
+                    </div>
+                    <div>
+                      <label>Amount ($)</label>
+                      <input class="in" id="aAddAmt" type="number" min="0" step="0.01" placeholder="e.g., 75" />
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                    <button class="btn primary" id="btnAdminAddAddon">Add/Update Add-on</button>
+                    <button class="btn" id="btnAdminResetAddon">Reset Defaults</button>
+                  </div>
+                  <div class="hr"></div>
+                  <div id="addonAdminList" class="list"></div>
+
+                  <div class="hr"></div>
+                  <div class="title" style="margin-bottom:8px">System Placeholders</div>
+                  <div class="hint">
+                    <div>• Google Maps API Key: <span class="kbd">GOOGLE_MAPS_API_KEY</span></div>
+                    <div>• Firebase config: <span class="kbd">FIREBASE_CONFIG</span></div>
+                    <div>• Stripe keys: <span class="kbd">STRIPE_PUBLIC_KEY</span> + server <span class="kbd">STRIPE_SECRET_KEY</span></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="card">
+          <div class="hd">
+            <div class="title">Leads / Pins</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="pill" id="pinCount">0 pins</span>
+              <button class="btn" id="btnExport">Export</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="hint" style="margin-bottom:10px">Tap a pin to edit, set follow-up, or create a quote.</div>
+            <div id="pinList" class="list"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="footerbar">
+        <div class="left">
+          <button class="btn" id="btnQuickNew">New Lead</button>
+          <button class="btn" id="btnQuickFollow">Follow-Ups</button>
+          <button class="btn" id="btnQuickBooked">Booked</button>
+        </div>
+        <div class="small" id="footNote">Local demo storage • No server</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- PIN MODAL -->
+  <div class="modal-back" id="pinModalBack">
+    <div class="modal">
+      <div class="mh">
+        <div>
+          <div class="t" id="pinModalTitle">Add Pin</div>
+          <div class="small" id="pinModalSub">Track a lead and set follow-ups.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="btnPinDelete">Delete</button>
+          <button class="btn" id="btnPinClose">✕</button>
+        </div>
+      </div>
+      <div class="mb">
+        <div class="grid2">
+          <div>
+            <label>Address</label>
+            <input class="in" id="pAddress" placeholder="123 Main St, Longview TX" />
+          </div>
+          <div>
+            <label>Status</label>
+            <select class="in" id="pStatus">
+              <option>New Lead</option>
+              <option>Quoted</option>
+              <option>Follow-Up Needed</option>
+              <option>Booked</option>
+              <option>No Answer</option>
+              <option>Not Interested</option>
+              <option>Do Not Knock</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <label>Customer Name (optional)</label>
+            <input class="in" id="pName" placeholder="Customer name" />
+          </div>
+          <div>
+            <label>Phone (optional)</label>
+            <input class="in" id="pPhone" placeholder="903-___-____" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label>Notes</label>
+          <input class="in" id="pNotes" placeholder="Gate code, dog, preferred contact time, etc." />
+        </div>
+
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <label>Follow-up Date (optional)</label>
+            <input class="in" id="pFollowDate" type="date" />
+          </div>
+          <div>
+            <label>Follow-up Time (optional)</label>
+            <input class="in" id="pFollowTime" type="time" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn primary" id="btnPinSave">Save Pin</button>
+          <button class="btn" id="btnPinToQuote">Create Quote From Pin</button>
+        </div>
+
+        <div class="hint" style="margin-top:10px">
+          In production, pins will store to Firestore with: address, status, notes, follow-up, repId, timestamps.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP MODAL -->
+  <div class="modal-back" id="setupBack">
+    <div class="modal">
+      <div class="mh">
+        <div>
+          <div class="t">Setup Placeholders</div>
+          <div class="small">Paste keys later. This is here so the build is plug-and-play.</div>
+        </div>
+        <button class="btn" id="btnSetupClose">✕</button>
+      </div>
+      <div class="mb">
+        <div class="notice" style="margin-bottom:12px">
+          <strong>Colton — this is the exact list you’ll fill to go live.</strong>
+          Everything else is built. These get added as environment variables (best) or in config.
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label>Google Maps API Key</label>
+            <input class="in" placeholder="GOOGLE_MAPS_API_KEY" disabled />
+          </div>
+          <div>
+            <label>Stripe Public Key</label>
+            <input class="in" placeholder="STRIPE_PUBLIC_KEY" disabled />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <label>Stripe Secret Key (server)</label>
+            <input class="in" placeholder="STRIPE_SECRET_KEY (server)" disabled />
+          </div>
+          <div>
+            <label>Stripe Webhook Secret (server)</label>
+            <input class="in" placeholder="STRIPE_WEBHOOK_SECRET (server)" disabled />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label>Firebase Config</label>
+          <textarea class="in" style="min-height:120px" placeholder="FIREBASE_CONFIG JSON" disabled></textarea>
+        </div>
+
+        <div class="hint" style="margin-top:10px">
+          When you’re ready, we’ll replace Demo Mode auth/data with Firebase Auth + Firestore + Storage.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================
+    // CGH Field App Demo (Single File)
+    // - Stores data in localStorage
+    // - Simulates roles
+    // - Placeholder for Maps + Firebase + Stripe
+    // ============================
+
+    const $ = (id)=>document.getElementById(id);
+
+    const LS = {
+      user: 'cgh_demo_user',
+      pins: 'cgh_demo_pins',
+      services: 'cgh_demo_services',
+      addons: 'cgh_demo_addons',
+      photos: 'cgh_demo_photos',
+      resources: 'cgh_demo_resources',
+      quotes: 'cgh_demo_quotes'
+    };
+
+    const defaults = {
+      services: [
+        { id:'house_wash', name:'House Wash', unit:'sqft', rate:0.18, min:249 },
+        { id:'drive_surface', name:'Driveway Surface Clean', unit:'sqft', rate:0.22, min:199 },
+        { id:'roof_wash', name:'Roof Wash', unit:'sqft', rate:0.40, min:399 },
+        { id:'fence_clean', name:'Fence Cleaning', unit:'linear_ft', rate:2.50, min:199 },
+        { id:'gutter_clean', name:'Gutter Cleaning', unit:'linear_ft', rate:1.85, min:149 },
+        { id:'window_clean', name:'Window Cleaning', unit:'each', rate:6.50, min:149 },
+      ],
+      addons: [
+        { id:'heavy', name:'Heavy Buildup', amt:75 },
+        { id:'rust', name:'Rust Treatment', amt:95 },
+        { id:'travel', name:'Travel / Mobilization', amt:50 },
+        { id:'afterhours', name:'After-hours / Weekend', amt:100 },
+      ],
+      resources: [
+        { id: uid(), cat:'D2D Scripts', title:'Door Opener (30s)', body:'Hey! We’re cleaning a couple homes down the street today — we’re offering a quick quote while we’re in the area. Want me to take a look and give you a number?' },
+        { id: uid(), cat:'Objection Handling', title:'“Not interested” quick pivot', body:'Totally fair — before I go, are you against the service itself or just not doing anything right now? If it’s timing, I can leave a ballpark and you can sit on it.' },
+      ]
+    };
+
+    // ---------- State ----------
+    let state = {
+      user: null,
+      role: 'rep',
+      tab: 'map',
+      editingPinId: null,
+      quote: {
+        lines: [],
+        addons: [],
+        customer: {name:'', phone:'', address:''}
+      }
+    };
+
+    // ---------- Init storage ----------
+    function ensureDefaults(){
+      if(!localStorage.getItem(LS.services)) localStorage.setItem(LS.services, JSON.stringify(defaults.services));
+      if(!localStorage.getItem(LS.addons)) localStorage.setItem(LS.addons, JSON.stringify(defaults.addons));
+      if(!localStorage.getItem(LS.pins)) localStorage.setItem(LS.pins, JSON.stringify([]));
+      if(!localStorage.getItem(LS.photos)) localStorage.setItem(LS.photos, JSON.stringify([]));
+      if(!localStorage.getItem(LS.resources)) localStorage.setItem(LS.resources, JSON.stringify(defaults.resources));
+      if(!localStorage.getItem(LS.quotes)) localStorage.setItem(LS.quotes, JSON.stringify([]));
+    }
+
+    function uid(){
+      return Math.random().toString(16).slice(2) + Date.now().toString(16);
+    }
+
+    function money(n){
+      const v = Number(n||0);
+      return v.toLocaleString(undefined,{style:'currency',currency:'USD'});
+    }
+
+    function unitLabel(unit){
+      if(unit==='sqft') return 'sqft';
+      if(unit==='linear_ft') return 'linear ft';
+      if(unit==='each') return 'each';
+      if(unit==='hour') return 'hour';
+      return unit;
+    }
+
+    function badgeClass(status){
+      switch(status){
+        case 'New Lead': return 'b-new';
+        case 'Quoted': return 'b-quoted';
+        case 'Follow-Up Needed': return 'b-follow';
+        case 'Booked': return 'b-booked';
+        case 'No Answer': return 'b-no';
+        case 'Not Interested': return 'b-not';
+        case 'Do Not Knock': return 'b-dnk';
+        default: return 'b-no';
+      }
+    }
+
+    // ---------- Read/Write ----------
+    const read = (k)=>JSON.parse(localStorage.getItem(k) || 'null');
+    const write = (k,v)=>localStorage.setItem(k, JSON.stringify(v));
+
+    function getPins(){ return read(LS.pins) || []; }
+    function setPins(p){ write(LS.pins, p); }
+    function getServices(){ return read(LS.services) || []; }
+    function setServices(s){ write(LS.services, s); }
+    function getAddons(){ return read(LS.addons) || []; }
+    function setAddons(a){ write(LS.addons, a); }
+    function getPhotos(){ return read(LS.photos) || []; }
+    function setPhotos(p){ write(LS.photos, p); }
+    function getResources(){ return read(LS.resources) || []; }
+    function setResources(r){ write(LS.resources, r); }
+    function getQuotes(){ return read(LS.quotes) || []; }
+    function setQuotes(q){ write(LS.quotes, q); }
+
+    // ---------- Auth (Demo) ----------
+    function demoLogin(email){
+      const isAdmin = (email||'').toLowerCase().includes('admin');
+      state.user = { email: email || (isAdmin?'admin@cgh.local':'rep@cgh.local'), name: isAdmin?'Admin':'Rep' };
+      state.role = isAdmin ? 'admin' : 'rep';
+      localStorage.setItem(LS.user, JSON.stringify({user:state.user, role:state.role}));
+      applyAuth();
+    }
+
+    function logout(){
+      localStorage.removeItem(LS.user);
+      state.user = null; state.role = 'rep';
+      $('viewApp').classList.add('hidden');
+      $('viewLogin').classList.remove('hidden');
+      $('btnLogout').classList.add('hidden');
+      $('userLine').textContent = 'Not signed in';
+    }
+
+    function applyAuth(){
+      $('viewLogin').classList.add('hidden');
+      $('viewApp').classList.remove('hidden');
+      $('btnLogout').classList.remove('hidden');
+
+      $('userLine').textContent = `${state.user.email} • ${state.role.toUpperCase()}`;
+      $('modePill').textContent = state.role==='admin' ? 'Admin View' : 'Rep View';
+
+      // Admin-only tab
+      document.querySelectorAll('.admin-only').forEach(el=>{
+        el.style.display = (state.role==='admin') ? '' : 'none';
+      });
+
+      // Default to map tab
+      setTab('map');
+
+      // Render lists
+      refreshAll();
+    }
+
+    // ---------- Tabs ----------
+    function setTab(tab){
+      state.tab = tab;
+      document.querySelectorAll('.tab').forEach(t=>{
+        t.classList.toggle('active', t.dataset.tab===tab);
+      });
+      document.querySelectorAll('.tabpane').forEach(p=>p.classList.add('hidden'));
+      $('tab-' + tab).classList.remove('hidden');
+
+      // Update title + primary CTA
+      const titles = { map:'Map / Leads', quote:'Quote Builder', photos:'Photos', resources:'Resources', admin:'Admin Panel' };
+      $('panelTitle').textContent = titles[tab] || 'Field App';
+
+      // Hide Add Pin button except map
+      $('btnAddPin').style.display = tab==='map' ? '' : 'none';
+
+      // If admin tab but rep, force back
+      if(tab==='admin' && state.role!=='admin'){
+        setTab('map');
+        return;
+      }
+
+      refreshAll();
+    }
+
+    // ---------- Pins ----------
+    function openPinModal(pin=null){
+      state.editingPinId = pin?.id || null;
+      $('pinModalTitle').textContent = pin ? 'Edit Pin' : 'Add Pin';
+      $('btnPinDelete').style.display = pin ? '' : 'none';
+
+      $('pAddress').value = pin?.address || '';
+      $('pStatus').value = pin?.status || 'New Lead';
+      $('pName').value = pin?.customerName || '';
+      $('pPhone').value = pin?.phone || '';
+      $('pNotes').value = pin?.notes || '';
+
+      $('pFollowDate').value = pin?.followDate || '';
+      $('pFollowTime').value = pin?.followTime || '';
+
+      $('pinModalBack').style.display = 'flex';
+    }
+
+    function closePinModal(){
+      $('pinModalBack').style.display = 'none';
+      state.editingPinId = null;
+    }
+
+    function savePin(){
+      const pins = getPins();
+      const now = new Date().toISOString();
+      const data = {
+        id: state.editingPinId || uid(),
+        address: $('pAddress').value.trim() || '(no address)',
+        status: $('pStatus').value,
+        customerName: $('pName').value.trim(),
+        phone: $('pPhone').value.trim(),
+        notes: $('pNotes').value.trim(),
+        followDate: $('pFollowDate').value,
+        followTime: $('pFollowTime').value,
+        repEmail: state.user?.email || 'unknown',
+        updatedAt: now,
+        createdAt: state.editingPinId ? (pins.find(x=>x.id===state.editingPinId)?.createdAt || now) : now,
+        quoteId: pins.find(x=>x.id===state.editingPinId)?.quoteId || null,
+      };
+
+      const idx = pins.findIndex(x=>x.id===data.id);
+      if(idx>=0) pins[idx]=data; else pins.unshift(data);
+      setPins(pins);
+      closePinModal();
+      refreshPins();
+    }
+
+    function deletePin(){
+      if(!state.editingPinId) return;
+      const pins = getPins().filter(p=>p.id!==state.editingPinId);
+      setPins(pins);
+      closePinModal();
+      refreshPins();
+    }
+
+    function pinToQuote(){
+      // Prefill customer from pin
+      const pin = getPins().find(p=>p.id===state.editingPinId);
+      if(pin){
+        $('qCustomer').value = pin.customerName || '';
+        $('qPhone').value = pin.phone || '';
+        $('qAddress').value = pin.address || '';
+      }
+      closePinModal();
+      setTab('quote');
+    }
+
+    function refreshPins(){
+      const pins = getPins();
+      const filter = $('filterStatus')?.value || '';
+
+      const filtered = filter ? pins.filter(p=>p.status===filter) : pins;
+
+      $('pinCount').textContent = `${filtered.length} pins`;
+      const el = $('pinList');
+      el.innerHTML = '';
+
+      if(filtered.length===0){
+        el.innerHTML = `<div class="hint">No pins yet. Tap <span class="kbd">Add Pin</span> to create your first lead.</div>`;
+        return;
+      }
+
+      filtered.forEach(p=>{
+        const badge = `<span class="badge ${badgeClass(p.status)}">${p.status}</span>`;
+        const follow = (p.followDate || p.followTime) ? ` • Follow-up: ${p.followDate || ''} ${p.followTime || ''}` : '';
+        const meta = `${p.address}${follow}`;
+        const name = p.customerName ? `${p.customerName}` : 'Lead';
+        const phone = p.phone ? ` • ${p.phone}` : '';
+        const note = p.notes ? ` • ${p.notes}` : '';
+
+        const row = document.createElement('div');
+        row.className='item';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(name)} ${badge}</div>
+            <p class="meta">${escapeHtml(meta)}</p>
+            <p class="meta">${escapeHtml(phone + note)}</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn" data-act="edit">Edit</button>
+            <button class="btn primary" data-act="quote">Quote</button>
+          </div>
+        `;
+        row.querySelector('[data-act="edit"]').onclick=()=>openPinModal(p);
+        row.querySelector('[data-act="quote"]').onclick=()=>{ openPinModal(p); pinToQuote(); };
+        el.appendChild(row);
+      });
+    }
+
+    function exportPins(){
+      const pins = getPins();
+      const csv = [
+        ['id','address','status','customerName','phone','notes','followDate','followTime','repEmail','createdAt','updatedAt','quoteId'].join(',')
+      ].concat(pins.map(p=>[
+        p.id, p.address, p.status, p.customerName, p.phone, p.notes, p.followDate, p.followTime, p.repEmail, p.createdAt, p.updatedAt, p.quoteId
+      ].map(csvSafe).join(','))).join('\n');
+
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='cgh_pins_export.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ---------- Quote Builder ----------
+    function resetQuote(){
+      state.quote.lines=[];
+      state.quote.addons=[];
+      $('qCustomer').value='';
+      $('qPhone').value='';
+      $('qAddress').value='';
+      refreshQuote();
+    }
+
+    function addServiceLine(){
+      const services = getServices();
+      const svcId = $('svcSelect').value;
+      const qty = Number($('svcQty').value);
+      const svc = services.find(s=>s.id===svcId);
+      if(!svc) return;
+      if(!qty || qty<=0){
+        alert('Enter a quantity greater than 0.');
+        return;
+      }
+      const raw = qty * Number(svc.rate);
+      const total = Math.max(raw, Number(svc.min||0));
+      state.quote.lines.push({
+        id: uid(),
+        svcId,
+        name: svc.name,
+        unit: svc.unit,
+        rate: Number(svc.rate),
+        qty,
+        min: Number(svc.min||0),
+        raw,
+        total
+      });
+      $('svcQty').value='';
+      refreshQuote();
+    }
+
+    function addPresetAddon(){
+      const addons = getAddons();
+      const id = $('addonSelect').value;
+      const a = addons.find(x=>x.id===id);
+      if(!a) return;
+      const amt = Number($('addonAmt').value || a.amt || 0);
+      state.quote.addons.push({id: uid(), name: a.name, amt});
+      $('addonAmt').value='';
+      refreshQuote();
+    }
+
+    function addCustomAddon(){
+      const desc = $('customDesc').value.trim();
+      const amt = Number($('customAmt').value);
+      if(!desc){ alert('Add a description for the custom add-on.'); return; }
+      if(!amt || amt<=0){ alert('Add an amount greater than 0.'); return; }
+      state.quote.addons.push({id: uid(), name: desc, amt});
+      $('customDesc').value='';
+      $('customAmt').value='';
+      refreshQuote();
+    }
+
+    function calcSubtotal(){
+      const lines = state.quote.lines.reduce((s,l)=>s + Number(l.total||0), 0);
+      const adds = state.quote.addons.reduce((s,a)=>s + Number(a.amt||0), 0);
+      return lines + adds;
+    }
+
+    function refreshQuote(){
+      const el = $('quoteLines');
+      el.innerHTML='';
+
+      if(state.quote.lines.length===0 && state.quote.addons.length===0){
+        el.innerHTML = `<div class="hint">No line items yet. Add a service and optional add-ons.</div>`;
+      }
+
+      state.quote.lines.forEach(l=>{
+        const row = document.createElement('div');
+        row.className='item';
+        const minNote = (l.raw < l.min) ? ` • min applied (${money(l.min)})` : '';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(l.name)} <span class="badge b-quoted">Service</span></div>
+            <p class="meta">${l.qty} ${unitLabel(l.unit)} × ${money(l.rate)}${minNote}</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <strong>${money(l.total)}</strong>
+            <button class="btn" title="Remove">✕</button>
+          </div>
+        `;
+        row.querySelector('button').onclick=()=>{
+          state.quote.lines = state.quote.lines.filter(x=>x.id!==l.id);
+          refreshQuote();
+        };
+        el.appendChild(row);
+      });
+
+      state.quote.addons.forEach(a=>{
+        const row = document.createElement('div');
+        row.className='item';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(a.name)} <span class="badge b-follow">Add-on</span></div>
+            <p class="meta">Extra charge</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <strong>${money(a.amt)}</strong>
+            <button class="btn" title="Remove">✕</button>
+          </div>
+        `;
+        row.querySelector('button').onclick=()=>{
+          state.quote.addons = state.quote.addons.filter(x=>x.id!==a.id);
+          refreshQuote();
+        };
+        el.appendChild(row);
+      });
+
+      const subtotal = calcSubtotal();
+      $('subTotal').textContent = money(subtotal);
+      $('grandTotal').textContent = money(subtotal);
+    }
+
+    function saveQuote(){
+      // Minimal validation
+      const customer = {
+        name: $('qCustomer').value.trim(),
+        phone: $('qPhone').value.trim(),
+        address: $('qAddress').value.trim(),
+      };
+      if(!customer.address){ alert('Add an address for the quote.'); return; }
+      if(state.quote.lines.length===0){ alert('Add at least one service line.'); return; }
+
+      const quotes = getQuotes();
+      const q = {
+        id: uid(),
+        customer,
+        lines: state.quote.lines,
+        addons: state.quote.addons,
+        subtotal: calcSubtotal(),
+        total: calcSubtotal(),
+        status: 'Saved',
+        repEmail: state.user?.email || 'unknown',
+        createdAt: new Date().toISOString(),
+      };
+      quotes.unshift(q);
+      setQuotes(quotes);
+
+      alert('Quote saved (demo). In production this saves to Firestore and links to the pin.');
+    }
+
+    function collectDeposit(){
+      const total = calcSubtotal();
+      if(total<=0){ alert('Build a quote first.'); return; }
+      alert('Stripe Checkout placeholder.\n\nIn production: create checkout session for deposit, redirect to Stripe, then update quote/pin status on success.');
+    }
+
+    function payInFull(){
+      const total = calcSubtotal();
+      if(total<=0){ alert('Build a quote first.'); return; }
+      alert('Stripe Checkout placeholder.\n\nIn production: create checkout session for full amount, redirect to Stripe, then update quote/pin status on success.');
+    }
+
+    // ---------- Photos ----------
+    function uploadPhoto(){
+      const f = $('photoFile').files?.[0];
+      if(!f){ alert('Choose a file first.'); return; }
+      const photos = getPhotos();
+      photos.unshift({
+        id: uid(),
+        name: f.name,
+        size: f.size,
+        attach: $('photoAttach').value,
+        type: $('photoType').value,
+        notes: $('photoNotes').value.trim(),
+        uploadedBy: state.user?.email || 'unknown',
+        createdAt: new Date().toISOString()
+      });
+      setPhotos(photos);
+      $('photoFile').value='';
+      $('photoNotes').value='';
+      refreshPhotos();
+    }
+
+    function clearPhotos(){
+      if(!confirm('Clear photo list in demo storage?')) return;
+      setPhotos([]);
+      refreshPhotos();
+    }
+
+    function refreshPhotos(){
+      const photos = getPhotos();
+      const el = $('photoList');
+      el.innerHTML='';
+      if(photos.length===0){
+        el.innerHTML = `<div class="hint">No uploads yet.</div>`;
+        return;
+      }
+      photos.slice(0,12).forEach(p=>{
+        const row = document.createElement('div');
+        row.className='item';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(p.name)} <span class="badge b-no">${escapeHtml(p.type)}</span></div>
+            <p class="meta">${escapeHtml(p.attach)} • ${escapeHtml(p.notes||'')} • ${new Date(p.createdAt).toLocaleString()}</p>
+          </div>
+          <div class="small">${Math.round(p.size/1024)} KB</div>
+        `;
+        el.appendChild(row);
+      });
+    }
+
+    // ---------- Resources ----------
+    function addResource(){
+      const cat = $('resCat').value;
+      const title = $('resTitle').value.trim();
+      const body = $('resBody').value.trim();
+      if(!title || !body){ alert('Add both title and content/link.'); return; }
+      const res = getResources();
+      res.unshift({id: uid(), cat, title, body});
+      setResources(res);
+      $('resTitle').value='';
+      $('resBody').value='';
+      refreshResources();
+    }
+
+    function clearResources(){
+      if(!confirm('Clear resources library in demo storage?')) return;
+      setResources([]);
+      refreshResources();
+    }
+
+    function refreshResources(){
+      const res = getResources();
+      const el = $('resList');
+      el.innerHTML='';
+      if(res.length===0){ el.innerHTML = `<div class="hint">No resources yet.</div>`; return; }
+      res.slice(0,20).forEach(r=>{
+        const row = document.createElement('div');
+        row.className='item';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(r.title)} <span class="badge b-new">${escapeHtml(r.cat)}</span></div>
+            <p class="meta">${escapeHtml(r.body)}</p>
+          </div>
+          <button class="btn" title="Remove">✕</button>
+        `;
+        row.querySelector('button').onclick=()=>{
+          setResources(res.filter(x=>x.id!==r.id));
+          refreshResources();
+        };
+        el.appendChild(row);
+      });
+    }
+
+    // ---------- Admin ----------
+    function refreshAdmin(){
+      if(state.role!=='admin') return;
+
+      const services = getServices();
+      const addons = getAddons();
+
+      // Service list
+      const svcEl = $('svcAdminList');
+      svcEl.innerHTML='';
+      services.forEach(s=>{
+        const row = document.createElement('div');
+        row.className='item';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(s.name)} <span class="badge b-quoted">${unitLabel(s.unit)}</span></div>
+            <p class="meta">Rate: ${money(s.rate)} / ${unitLabel(s.unit)} • Min: ${money(s.min||0)}</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" data-act="edit">Edit</button>
+            <button class="btn" data-act="del">✕</button>
+          </div>
+        `;
+        row.querySelector('[data-act="edit"]').onclick=()=>{
+          $('aSvcName').value = s.name;
+          $('aSvcUnit').value = s.unit;
+          $('aSvcRate').value = s.rate;
+          $('aSvcMin').value = s.min;
+          $('aSvcName').dataset.editId = s.id;
+        };
+        row.querySelector('[data-act="del"]').onclick=()=>{
+          if(!confirm('Delete this service?')) return;
+          setServices(services.filter(x=>x.id!==s.id));
+          refreshAll();
+        };
+        svcEl.appendChild(row);
+      });
+
+      // Addon list
+      const addEl = $('addonAdminList');
+      addEl.innerHTML='';
+      addons.forEach(a=>{
+        const row = document.createElement('div');
+        row.className='item';
+        row.innerHTML = `
+          <div class="left">
+            <div class="name">${escapeHtml(a.name)} <span class="badge b-follow">Add-on</span></div>
+            <p class="meta">Amount: ${money(a.amt)}</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" data-act="edit">Edit</button>
+            <button class="btn" data-act="del">✕</button>
+          </div>
+        `;
+        row.querySelector('[data-act="edit"]').onclick=()=>{
+          $('aAddName').value = a.name;
+          $('aAddAmt').value = a.amt;
+          $('aAddName').dataset.editId = a.id;
+        };
+        row.querySelector('[data-act="del"]').onclick=()=>{
+          if(!confirm('Delete this add-on?')) return;
+          setAddons(addons.filter(x=>x.id!==a.id));
+          refreshAll();
+        };
+        addEl.appendChild(row);
+      });
+
+      refreshServiceDropdowns();
+    }
+
+    function adminAddOrUpdateService(){
+      const services = getServices();
+      const name = $('aSvcName').value.trim();
+      const unit = $('aSvcUnit').value;
+      const rate = Number($('aSvcRate').value);
+      const min = Number($('aSvcMin').value || 0);
+      if(!name){ alert('Service name required'); return; }
+      if(!rate || rate<=0){ alert('Rate must be > 0'); return; }
+
+      const editId = $('aSvcName').dataset.editId;
+      if(editId){
+        const idx = services.findIndex(s=>s.id===editId);
+        if(idx>=0) services[idx] = {...services[idx], name, unit, rate, min};
+        $('aSvcName').dataset.editId = '';
+      } else {
+        services.unshift({id: slug(name), name, unit, rate, min});
+      }
+      setServices(services);
+      $('aSvcName').value='';
+      $('aSvcRate').value='';
+      $('aSvcMin').value='';
+      refreshAll();
+    }
+
+    function adminResetServices(){
+      if(!confirm('Reset services to defaults?')) return;
+      setServices(defaults.services);
+      refreshAll();
+    }
+
+    function adminAddOrUpdateAddon(){
+      const addons = getAddons();
+      const name = $('aAddName').value.trim();
+      const amt = Number($('aAddAmt').value);
+      if(!name){ alert('Add-on name required'); return; }
+      if(!amt || amt<=0){ alert('Amount must be > 0'); return; }
+
+      const editId = $('aAddName').dataset.editId;
+      if(editId){
+        const idx = addons.findIndex(a=>a.id===editId);
+        if(idx>=0) addons[idx] = {...addons[idx], name, amt};
+        $('aAddName').dataset.editId = '';
+      } else {
+        addons.unshift({id: slug(name), name, amt});
+      }
+      setAddons(addons);
+      $('aAddName').value='';
+      $('aAddAmt').value='';
+      refreshAll();
+    }
+
+    function adminResetAddons(){
+      if(!confirm('Reset add-ons to defaults?')) return;
+      setAddons(defaults.addons);
+      refreshAll();
+    }
+
+    function refreshServiceDropdowns(){
+      const services = getServices();
+      const addons = getAddons();
+      $('svcSelect').innerHTML = services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)} — ${money(s.rate)}/${unitLabel(s.unit)} (min ${money(s.min||0)})</option>`).join('');
+      $('addonSelect').innerHTML = addons.map(a=>`<option value="${a.id}">${escapeHtml(a.name)} — ${money(a.amt)}</option>`).join('');
+
+      // Autofill addon amount on change
+      $('addonSelect').onchange = ()=>{
+        const a = getAddons().find(x=>x.id===$('addonSelect').value);
+        $('addonAmt').value = a?.amt ?? '';
+      };
+    }
+
+    // ---------- Quick Filters ----------
+    function quickFilter(status){
+      $('filterStatus').value = status || '';
+      refreshPins();
+    }
+
+    // ---------- Setup Modal ----------
+    function openSetup(){ $('setupBack').style.display='flex'; }
+    function closeSetup(){ $('setupBack').style.display='none'; }
+
+    // ---------- Helpers ----------
+    function csvSafe(v){
+      const s = String(v ?? '');
+      if(/[",\n]/.test(s)) return '"' + s.replaceAll('"','""') + '"';
+      return s;
+    }
+
+    function escapeHtml(str){
+      return String(str ?? '').replace(/[&<>"]/g, c=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
+      }[c]));
+    }
+
+    function slug(s){
+      return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    }
+
+    function refreshAll(){
+      refreshServiceDropdowns();
+      refreshPins();
+      refreshQuote();
+      refreshPhotos();
+      refreshResources();
+      refreshAdmin();
+    }
+
+    // ---------- Wire UI events ----------
+    function wire(){
+      $('btnLogin').onclick = ()=>{
+        const email = $('loginEmail').value.trim();
+        if(!email){ alert('Enter an email (demo).'); return; }
+        demoLogin(email);
+      };
+      $('btnDemoAdmin').onclick = ()=>demoLogin('admin@cgh.demo');
+      $('btnDemoRep').onclick = ()=>demoLogin('rep@cgh.demo');
+
+      $('btnLogout').onclick = logout;
+
+      document.querySelectorAll('.tab').forEach(t=>{
+        t.onclick = ()=>setTab(t.dataset.tab);
+      });
+
+      $('btnAddPin').onclick = ()=>openPinModal(null);
+      $('btnPinClose').onclick = closePinModal;
+      $('pinModalBack').onclick = (e)=>{ if(e.target.id==='pinModalBack') closePinModal(); };
+
+      $('btnPinSave').onclick = savePin;
+      $('btnPinDelete').onclick = deletePin;
+      $('btnPinToQuote').onclick = ()=>{ if(!state.editingPinId){ savePin(); } pinToQuote(); };
+
+      $('filterStatus').onchange = refreshPins;
+
+      $('btnExport').onclick = exportPins;
+
+      $('btnAddService').onclick = addServiceLine;
+      $('btnClearQuote').onclick = resetQuote;
+      $('btnAddAddon').onclick = addPresetAddon;
+      $('btnAddCustom').onclick = addCustomAddon;
+      $('btnSaveQuote').onclick = saveQuote;
+      $('btnDeposit').onclick = collectDeposit;
+      $('btnPayFull').onclick = payInFull;
+
+      $('btnUploadPhoto').onclick = uploadPhoto;
+      $('btnClearPhotos').onclick = clearPhotos;
+
+      $('btnAddRes').onclick = addResource;
+      $('btnClearRes').onclick = clearResources;
+
+      $('btnAdminAddSvc').onclick = adminAddOrUpdateService;
+      $('btnAdminResetSvc').onclick = adminResetServices;
+      $('btnAdminAddAddon').onclick = adminAddOrUpdateAddon;
+      $('btnAdminResetAddon').onclick = adminResetAddons;
+
+      $('btnQuickNew').onclick = ()=>quickFilter('New Lead');
+      $('btnQuickFollow').onclick = ()=>quickFilter('Follow-Up Needed');
+      $('btnQuickBooked').onclick = ()=>quickFilter('Booked');
+
+      $('btnOpenSetup').onclick = openSetup;
+      $('btnSetupClose').onclick = closeSetup;
+      $('setupBack').onclick = (e)=>{ if(e.target.id==='setupBack') closeSetup(); };
+
+      // Autofill addon amount initial
+      setTimeout(()=>{
+        const a = getAddons()[0];
+        if(a) $('addonAmt').value = a.amt;
+      }, 0);
+    }
+
+    // ---------- Boot ----------
+    ensureDefaults();
+    wire();
+
+    const saved = localStorage.getItem(LS.user);
+    if(saved){
+      try{
+        const x = JSON.parse(saved);
+        state.user = x.user; state.role = x.role;
+        applyAuth();
+      } catch { /* ignore */ }
+    }
+  </script>
+</body>
+</html>

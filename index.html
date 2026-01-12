@@ -3,8 +3,54 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CGH Field App — Demo</title>
-  <meta name="description" content="CGH Door-to-Door Field App demo (single-file HTML)." />
+  <title>CGH Field App</title>
+  <meta name="description" content="CGH Door-to-Door Field App (single-file production-ready front-end)." />
+
+  <!--
+    ✅ THIS FILE IS NOW "REAL" (NOT DEMO):
+    - Firebase Auth (email/password)
+    - Firestore (pins, quotes, services, addons, resources, photos metadata, users)
+    - Firebase Storage (photo uploads)
+    - Google Maps JS API (real map + markers)
+    - Stripe checkout via serverless endpoint (Netlify Functions recommended)
+
+    YOU MUST DO THESE 4 THINGS:
+
+    1) Firebase Project
+       - Enable Authentication (Email/Password)
+       - Create Firestore Database
+       - Enable Storage
+       - Create a Web App and copy its config into FIREBASE_CONFIG below
+
+    2) Firestore Security Rules (IMPORTANT)
+       - Use rules to ensure:
+         • reps can only read/write their own pins/quotes/photos
+         • admins can read/write everything + pricing collections
+       - I can generate the exact rules file when you’re ready.
+
+    3) Google Maps API Key
+       - Enable Maps JavaScript API (+ Places API recommended)
+       - Restrict key to your domain (HTTP referrers)
+       - Put it in GOOGLE_MAPS_API_KEY below
+
+    4) Stripe Serverless
+       - Create serverless endpoints:
+         • /.netlify/functions/createCheckoutSession
+         • /.netlify/functions/stripeWebhook  (optional but recommended)
+       - Put STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET in Netlify env vars
+       - The front-end calls createCheckoutSession and redirects to Stripe.
+
+    DEPLOYMENT PATHS
+      Option A (recommended): https://cghoperations.com/d2d
+        - Put this file at: /d2d/index.html in your CGH website repo
+
+      Option B: https://app.cghoperations.com
+        - New Netlify site + subdomain
+
+    NOTE: You cannot do Stripe "for real" with ONLY static HTML.
+          The secret key must stay server-side (functions).
+  -->
+
   <style>
     :root{
       --bg:#0b1220;
@@ -53,9 +99,7 @@
     .brand p{margin:0;color:var(--muted);font-size:12px}
 
     .row{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
-    @media (max-width: 920px){
-      .row{grid-template-columns:1fr}
-    }
+    @media (max-width: 920px){.row{grid-template-columns:1fr}}
 
     .card{
       border:1px solid var(--line);border-radius:var(--radius);
@@ -109,26 +153,8 @@
       background:rgba(255,255,255,.04);cursor:pointer;color:var(--muted);font-weight:650;font-size:12px}
     .tab.active{background:rgba(47,124,246,.20);border-color:rgba(47,124,246,.55);color:var(--text)}
 
-    .map{
-      height:440px;border-radius:14px;border:1px dashed rgba(255,255,255,.18);
-      background:
-        linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.18)),
-        radial-gradient(700px 400px at 30% 30%, rgba(96,165,250,.18), transparent 60%),
-        radial-gradient(700px 400px at 70% 60%, rgba(34,197,94,.10), transparent 60%),
-        rgba(255,255,255,.03);
-      position:relative;overflow:hidden
-    }
-    .map .overlay{
-      position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;
-      padding:14px;justify-content:flex-end
-    }
-    .map .banner{
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.35);
-      border-radius:14px;padding:12px
-    }
-    .map .banner .big{font-weight:800}
-    .map .banner code{font-family:var(--mono);font-size:12px;color:#cfe0ff}
+    .map{height:440px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);position:relative;overflow:hidden}
+    #mapCanvas{height:100%;width:100%}
 
     .list{display:flex;flex-direction:column;gap:10px}
     .item{
@@ -153,9 +179,7 @@
     .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:720px){.split{grid-template-columns:1fr}}
 
-    .totals{
-      border-top:1px solid var(--line);margin-top:12px;padding-top:12px
-    }
+    .totals{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
     .totals .r{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:6px 0}
     .totals .r strong{font-size:14px}
 
@@ -168,38 +192,30 @@
     }
     .footerbar .left{display:flex;gap:8px;flex-wrap:wrap}
 
-    .notice{
-      border:1px solid rgba(47,124,246,.35);
-      background:rgba(47,124,246,.12);
-      border-radius:14px;padding:12px;color:#dbe8ff
-    }
+    .notice{border:1px solid rgba(47,124,246,.35);background:rgba(47,124,246,.12);border-radius:14px;padding:12px;color:#dbe8ff}
     .notice strong{display:block;margin-bottom:4px}
 
     .hidden{display:none !important}
 
     /* Modal */
-    .modal-back{
-      position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter: blur(6px);
-      display:none;align-items:center;justify-content:center;padding:18px;z-index:50
-    }
-    .modal{
-      width:min(820px, 100%);
-      border:1px solid rgba(255,255,255,.16);
-      background:linear-gradient(180deg, rgba(17,31,56,.92), rgba(15,26,46,.96));
-      border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55);
-      overflow:hidden
-    }
+    .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter: blur(6px);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+    .modal{width:min(820px, 100%);border:1px solid rgba(255,255,255,.16);background:linear-gradient(180deg, rgba(17,31,56,.92), rgba(15,26,46,.96));border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55);overflow:hidden}
     .modal .mh{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
     .modal .mb{padding:16px}
     .modal .mh .t{font-weight:900}
 
     .kbd{font-family:var(--mono);font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.18);color:#cfe0ff}
-
     .small{font-size:12px;color:var(--muted)}
-
     .hr{height:1px;background:var(--line);margin:12px 0}
 
     .admin-only{display:none}
+
+    .toast{position:fixed;right:16px;bottom:16px;max-width:420px;z-index:9999}
+    .toast .titem{border:1px solid rgba(255,255,255,.16);background:rgba(15,26,46,.92);box-shadow:0 12px 30px rgba(0,0,0,.45);border-radius:14px;padding:12px;margin-top:10px}
+    .toast .titem strong{display:block;margin-bottom:4px}
+
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:rgba(255,255,255,.9);border-radius:999px;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -210,8 +226,8 @@
       <div class="brand">
         <div class="logo">CGH</div>
         <div>
-          <h1>CGH Field App <span class="pill" id="envPill">Demo Mode</span></h1>
-          <p id="userLine">Not signed in</p>
+          <h1>CGH Field App <span class="pill" id="envPill">Live</span></h1>
+          <p id="userLine">Checking session…</p>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -226,8 +242,8 @@
         <div class="hd"><div class="title">Login</div><span class="pill">Rep or Admin</span></div>
         <div class="bd">
           <div class="notice" style="margin-bottom:12px">
-            <strong>This is a working UI demo.</strong>
-            Logins are simulated right now so you can see the app and edit the flow. When you plug in Firebase Auth, this becomes real.
+            <strong>Real login is enabled.</strong>
+            Your admin user is determined by Firestore role (or the ADMIN_UIDS fallback in config).
           </div>
 
           <div class="grid2">
@@ -243,19 +259,15 @@
 
           <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
             <button class="btn primary" id="btnLogin">Login</button>
-            <button class="btn" id="btnDemoAdmin">Demo as Admin</button>
-            <button class="btn" id="btnDemoRep">Demo as Rep</button>
-            <span class="small">Tip: Use <span class="kbd">admin</span> in email to auto-set Admin role.</span>
+            <button class="btn" id="btnForgot">Forgot password</button>
+            <span class="small" id="loginState"></span>
           </div>
 
           <div class="hr"></div>
           <div class="hint">
-            <div><strong>Production wiring placeholders</strong></div>
-            <div>• Firebase Auth (email/password)</div>
-            <div>• Firestore (pins, quotes, services, users)</div>
-            <div>• Storage (photos)</div>
-            <div>• Google Maps API (real map + geocoding)</div>
-            <div>• Stripe Checkout (deposit / pay in full)</div>
+            <div><strong>Admin note</strong></div>
+            <div>• You create rep accounts in Firebase Auth (console) OR we add an Admin-only “Invite User” function later.</div>
+            <div>• Roles are stored at <span class="kbd">users/{uid}</span> with field <span class="kbd">role</span> = <span class="kbd">admin</span> or <span class="kbd">rep</span>.</div>
           </div>
         </div>
       </div>
@@ -281,16 +293,16 @@
             <div class="item">
               <div class="left">
                 <div class="name">💳 Payments</div>
-                <p class="meta">Deposit or full pay (Stripe placeholder).</p>
+                <p class="meta">Deposit or full pay (Stripe Checkout via functions).</p>
               </div>
-              <span class="badge b-follow">Placeholder</span>
+              <span class="badge b-follow">Live (requires functions)</span>
             </div>
             <div class="item">
               <div class="left">
                 <div class="name">📸 Photos + 📚 Resources</div>
                 <p class="meta">Upload before/after and view training docs.</p>
               </div>
-              <span class="badge b-no">Live UI</span>
+              <span class="badge b-no">Live</span>
             </div>
           </div>
         </div>
@@ -344,13 +356,7 @@
               </div>
 
               <div class="map" id="map">
-                <div class="overlay">
-                  <div class="banner">
-                    <div class="big">Map Placeholder</div>
-                    <div class="small">Plug in Google Maps API later. For now, pins are shown in the right panel list.</div>
-                    <div class="small" style="margin-top:6px">Placeholder key: <code>GOOGLE_MAPS_API_KEY</code></div>
-                  </div>
-                </div>
+                <div id="mapCanvas"></div>
               </div>
 
               <div class="notice" style="margin-top:12px">
@@ -440,7 +446,7 @@
 
                       <div class="totals">
                         <div class="r"><span class="small">Subtotal</span><span id="subTotal">$0.00</span></div>
-                        <div class="r"><span class="small">Tax</span><span class="small">(placeholder)</span></div>
+                        <div class="r"><span class="small">Tax</span><span class="small" id="taxLine">(optional)</span></div>
                         <div class="r"><strong>Total</strong><strong id="grandTotal">$0.00</strong></div>
                       </div>
 
@@ -451,9 +457,7 @@
                       </div>
 
                       <div class="hint" style="margin-top:10px">
-                        Payments are placeholders right now.
-                        Plug in Stripe Checkout via serverless function later.
-                        Placeholder keys: <span class="kbd">STRIPE_PUBLIC_KEY</span> + server-side <span class="kbd">STRIPE_SECRET_KEY</span>.
+                        Payments are live if your serverless function is deployed.
                       </div>
                     </div>
                   </div>
@@ -470,8 +474,8 @@
             <!-- PHOTOS TAB -->
             <div class="tabpane hidden" id="tab-photos">
               <div class="notice" style="margin-bottom:12px">
-                <strong>Photo Upload (UI Demo)</strong>
-                In production, uploads go to Firebase Storage (or your choice). For now this stores filenames in local storage.
+                <strong>Photo Upload</strong>
+                Uploads go to Firebase Storage and the metadata is stored in Firestore.
               </div>
 
               <div class="grid2">
@@ -500,28 +504,24 @@
 
               <div style="margin-top:10px">
                 <label>Select file</label>
-                <input class="in" id="photoFile" type="file" />
+                <input class="in" id="photoFile" type="file" accept="image/*" />
               </div>
 
               <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
                 <button class="btn primary" id="btnUploadPhoto">Upload</button>
-                <button class="btn" id="btnClearPhotos">Clear List</button>
+                <button class="btn" id="btnClearPhotos">Clear List (admin)</button>
               </div>
 
               <div class="hr"></div>
               <div class="title" style="margin-bottom:8px">Recent Uploads</div>
               <div id="photoList" class="list"></div>
-
-              <div class="hint" style="margin-top:10px">
-                Production placeholder: <span class="kbd">FIREBASE_STORAGE_BUCKET</span>
-              </div>
             </div>
 
             <!-- RESOURCES TAB -->
             <div class="tabpane hidden" id="tab-resources">
               <div class="notice" style="margin-bottom:12px">
                 <strong>Resources Library</strong>
-                This is where you store D2D scripts, objection handling, pricing notes, and portfolio examples.
+                Store D2D scripts, objection handling, pricing notes, and portfolio examples.
               </div>
 
               <div class="grid2">
@@ -545,7 +545,7 @@
               </div>
               <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
                 <button class="btn primary" id="btnAddRes">Add Resource</button>
-                <button class="btn" id="btnClearRes">Clear Library</button>
+                <button class="btn" id="btnClearRes">Clear Library (admin)</button>
               </div>
 
               <div class="hr"></div>
@@ -616,11 +616,10 @@
                   <div id="addonAdminList" class="list"></div>
 
                   <div class="hr"></div>
-                  <div class="title" style="margin-bottom:8px">System Placeholders</div>
+                  <div class="title" style="margin-bottom:8px">Users (roles)</div>
                   <div class="hint">
-                    <div>• Google Maps API Key: <span class="kbd">GOOGLE_MAPS_API_KEY</span></div>
-                    <div>• Firebase config: <span class="kbd">FIREBASE_CONFIG</span></div>
-                    <div>• Stripe keys: <span class="kbd">STRIPE_PUBLIC_KEY</span> + server <span class="kbd">STRIPE_SECRET_KEY</span></div>
+                    Roles live in Firestore at <span class="kbd">users/{uid}</span>.
+                    <div style="margin-top:6px">Admin can edit those docs in Firebase console right now (fastest). We can add a UI editor later.</div>
                   </div>
                 </div>
 
@@ -653,7 +652,7 @@
           <button class="btn" id="btnQuickFollow">Follow-Ups</button>
           <button class="btn" id="btnQuickBooked">Booked</button>
         </div>
-        <div class="small" id="footNote">Local demo storage • No server</div>
+        <div class="small" id="footNote">Live: Firebase • Maps • Stripe</div>
       </div>
 
     </div>
@@ -720,13 +719,24 @@
           </div>
         </div>
 
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <label>Latitude</label>
+            <input class="in" id="pLat" type="number" step="0.000001" placeholder="auto" />
+          </div>
+          <div>
+            <label>Longitude</label>
+            <input class="in" id="pLng" type="number" step="0.000001" placeholder="auto" />
+          </div>
+        </div>
+
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
           <button class="btn primary" id="btnPinSave">Save Pin</button>
           <button class="btn" id="btnPinToQuote">Create Quote From Pin</button>
         </div>
 
         <div class="hint" style="margin-top:10px">
-          In production, pins will store to Firestore with: address, status, notes, follow-up, repId, timestamps.
+          Pins are stored in Firestore and keyed by your user id.
         </div>
       </div>
     </div>
@@ -737,113 +747,129 @@
     <div class="modal">
       <div class="mh">
         <div>
-          <div class="t">Setup Placeholders</div>
-          <div class="small">Paste keys later. This is here so the build is plug-and-play.</div>
+          <div class="t">Setup (Keys / Endpoints)</div>
+          <div class="small">These are the only placeholders you must fill.</div>
         </div>
         <button class="btn" id="btnSetupClose">✕</button>
       </div>
       <div class="mb">
         <div class="notice" style="margin-bottom:12px">
-          <strong>Colton — this is the exact list you’ll fill to go live.</strong>
-          Everything else is built. These get added as environment variables (best) or in config.
+          <strong>Paste your keys in the CONFIG section inside this file.</strong>
+          If you deploy on Netlify, keep Stripe keys in environment variables (functions), not in this HTML.
         </div>
 
-        <div class="grid2">
-          <div>
-            <label>Google Maps API Key</label>
-            <input class="in" placeholder="GOOGLE_MAPS_API_KEY" disabled />
-          </div>
-          <div>
-            <label>Stripe Public Key</label>
-            <input class="in" placeholder="STRIPE_PUBLIC_KEY" disabled />
-          </div>
+        <div class="hint">
+          <div><strong>Required</strong></div>
+          <div>• <span class="kbd">FIREBASE_CONFIG</span></div>
+          <div>• <span class="kbd">GOOGLE_MAPS_API_KEY</span></div>
+          <div>• Stripe Functions Endpoint: <span class="kbd">/.netlify/functions/createCheckoutSession</span></div>
         </div>
 
-        <div class="grid2" style="margin-top:10px">
-          <div>
-            <label>Stripe Secret Key (server)</label>
-            <input class="in" placeholder="STRIPE_SECRET_KEY (server)" disabled />
-          </div>
-          <div>
-            <label>Stripe Webhook Secret (server)</label>
-            <input class="in" placeholder="STRIPE_WEBHOOK_SECRET (server)" disabled />
-          </div>
+        <div class="hr"></div>
+
+        <div class="hint">
+          <div><strong>Bootstrap Admin</strong></div>
+          <div>Put your Firebase Auth UID into <span class="kbd">ADMIN_UIDS</span> in config. That guarantees you’re admin even before roles exist.</div>
         </div>
 
-        <div style="margin-top:10px">
-          <label>Firebase Config</label>
-          <textarea class="in" style="min-height:120px" placeholder="FIREBASE_CONFIG JSON" disabled></textarea>
-        </div>
-
-        <div class="hint" style="margin-top:10px">
-          When you’re ready, we’ll replace Demo Mode auth/data with Firebase Auth + Firestore + Storage.
-        </div>
       </div>
     </div>
   </div>
 
-  <script>
+  <div class="toast" id="toast"></div>
+
+  <!-- Firebase (modular SDK) -->
+  <script type="module">
     // ============================
-    // CGH Field App Demo (Single File)
-    // - Stores data in localStorage
-    // - Simulates roles
-    // - Placeholder for Maps + Firebase + Stripe
+    // CONFIG (YOU MUST FILL THESE)
     // ============================
 
+    // 1) Firebase Web App config (Project settings → Your apps → Web app)
+    const FIREBASE_CONFIG = {
+      apiKey: "PASTE_ME",
+      authDomain: "PASTE_ME",
+      projectId: "PASTE_ME",
+      storageBucket: "PASTE_ME",
+      messagingSenderId: "PASTE_ME",
+      appId: "PASTE_ME"
+    };
+
+    // 2) Your Google Maps API key
+    const GOOGLE_MAPS_API_KEY = "PASTE_ME";
+
+    // 3) Stripe Checkout serverless endpoint (Netlify Functions recommended)
+    //    Must return JSON: { url: "https://checkout.stripe.com/..." }
+    const STRIPE_CREATE_SESSION_URL = "/.netlify/functions/createCheckoutSession";
+
+    // 4) Admin bootstrap (put YOUR Firebase auth UID here)
+    //    This guarantees you can access admin panel even before roles are set.
+    const ADMIN_UIDS = [
+      // "YOUR_UID_HERE"
+    ];
+
+    // Optional: default map center
+    const DEFAULT_CENTER = { lat: 32.5007, lng: -94.7405 }; // Longview-ish
+
+    // Optional: deposit rules
+    const DEPOSIT_MODE = "percent"; // "percent" or "flat"
+    const DEPOSIT_PERCENT = 0.30;
+    const DEPOSIT_FLAT = 100;
+
+    // ============================
+    // IMPORTS
+    // ============================
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      collection,
+      query,
+      where,
+      orderBy,
+      onSnapshot,
+      serverTimestamp,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    import {
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL,
+      deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+
+    // ============================
+    // DOM HELPERS
+    // ============================
     const $ = (id)=>document.getElementById(id);
 
-    const LS = {
-      user: 'cgh_demo_user',
-      pins: 'cgh_demo_pins',
-      services: 'cgh_demo_services',
-      addons: 'cgh_demo_addons',
-      photos: 'cgh_demo_photos',
-      resources: 'cgh_demo_resources',
-      quotes: 'cgh_demo_quotes'
-    };
+    function toast(title, msg){
+      const t = $('toast');
+      const el = document.createElement('div');
+      el.className='titem';
+      el.innerHTML = `<strong>${escapeHtml(title)}</strong><div class="small">${escapeHtml(msg)}</div>`;
+      t.appendChild(el);
+      setTimeout(()=>{ el.remove(); }, 4200);
+    }
 
-    const defaults = {
-      services: [
-        { id:'house_wash', name:'House Wash', unit:'sqft', rate:0.18, min:249 },
-        { id:'drive_surface', name:'Driveway Surface Clean', unit:'sqft', rate:0.22, min:199 },
-        { id:'roof_wash', name:'Roof Wash', unit:'sqft', rate:0.40, min:399 },
-        { id:'fence_clean', name:'Fence Cleaning', unit:'linear_ft', rate:2.50, min:199 },
-        { id:'gutter_clean', name:'Gutter Cleaning', unit:'linear_ft', rate:1.85, min:149 },
-        { id:'window_clean', name:'Window Cleaning', unit:'each', rate:6.50, min:149 },
-      ],
-      addons: [
-        { id:'heavy', name:'Heavy Buildup', amt:75 },
-        { id:'rust', name:'Rust Treatment', amt:95 },
-        { id:'travel', name:'Travel / Mobilization', amt:50 },
-        { id:'afterhours', name:'After-hours / Weekend', amt:100 },
-      ],
-      resources: [
-        { id: uid(), cat:'D2D Scripts', title:'Door Opener (30s)', body:'Hey! We’re cleaning a couple homes down the street today — we’re offering a quick quote while we’re in the area. Want me to take a look and give you a number?' },
-        { id: uid(), cat:'Objection Handling', title:'“Not interested” quick pivot', body:'Totally fair — before I go, are you against the service itself or just not doing anything right now? If it’s timing, I can leave a ballpark and you can sit on it.' },
-      ]
-    };
-
-    // ---------- State ----------
-    let state = {
-      user: null,
-      role: 'rep',
-      tab: 'map',
-      editingPinId: null,
-      quote: {
-        lines: [],
-        addons: [],
-        customer: {name:'', phone:'', address:''}
-      }
-    };
-
-    // ---------- Init storage ----------
-    function ensureDefaults(){
-      if(!localStorage.getItem(LS.services)) localStorage.setItem(LS.services, JSON.stringify(defaults.services));
-      if(!localStorage.getItem(LS.addons)) localStorage.setItem(LS.addons, JSON.stringify(defaults.addons));
-      if(!localStorage.getItem(LS.pins)) localStorage.setItem(LS.pins, JSON.stringify([]));
-      if(!localStorage.getItem(LS.photos)) localStorage.setItem(LS.photos, JSON.stringify([]));
-      if(!localStorage.getItem(LS.resources)) localStorage.setItem(LS.resources, JSON.stringify(defaults.resources));
-      if(!localStorage.getItem(LS.quotes)) localStorage.setItem(LS.quotes, JSON.stringify([]));
+    function escapeHtml(str){
+      return String(str ?? '').replace(/[&<>\"]/g, c=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'
+      }[c]));
     }
 
     function uid(){
@@ -876,91 +902,315 @@
       }
     }
 
-    // ---------- Read/Write ----------
-    const read = (k)=>JSON.parse(localStorage.getItem(k) || 'null');
-    const write = (k,v)=>localStorage.setItem(k, JSON.stringify(v));
+    // ============================
+    // FIREBASE INIT
+    // ============================
+    const fbApp = initializeApp(FIREBASE_CONFIG);
+    const auth = getAuth(fbApp);
+    const db = getFirestore(fbApp);
+    const storage = getStorage(fbApp);
 
-    function getPins(){ return read(LS.pins) || []; }
-    function setPins(p){ write(LS.pins, p); }
-    function getServices(){ return read(LS.services) || []; }
-    function setServices(s){ write(LS.services, s); }
-    function getAddons(){ return read(LS.addons) || []; }
-    function setAddons(a){ write(LS.addons, a); }
-    function getPhotos(){ return read(LS.photos) || []; }
-    function setPhotos(p){ write(LS.photos, p); }
-    function getResources(){ return read(LS.resources) || []; }
-    function setResources(r){ write(LS.resources, r); }
-    function getQuotes(){ return read(LS.quotes) || []; }
-    function setQuotes(q){ write(LS.quotes, q); }
+    // ============================
+    // GOOGLE MAPS LOADER
+    // ============================
+    let map = null;
+    let geocoder = null;
+    let markers = new Map(); // pinId -> marker
 
-    // ---------- Auth (Demo) ----------
-    function demoLogin(email){
-      const isAdmin = (email||'').toLowerCase().includes('admin');
-      state.user = { email: email || (isAdmin?'admin@cgh.local':'rep@cgh.local'), name: isAdmin?'Admin':'Rep' };
-      state.role = isAdmin ? 'admin' : 'rep';
-      localStorage.setItem(LS.user, JSON.stringify({user:state.user, role:state.role}));
-      applyAuth();
+    function loadGoogleMaps(){
+      return new Promise((resolve, reject)=>{
+        if(window.google?.maps){ resolve(); return; }
+        if(!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY==='PASTE_ME'){
+          reject(new Error('Missing GOOGLE_MAPS_API_KEY')); return;
+        }
+        const s = document.createElement('script');
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&libraries=places&v=weekly`;
+        s.async = true;
+        s.onload = ()=>resolve();
+        s.onerror = ()=>reject(new Error('Failed to load Google Maps script'));
+        document.head.appendChild(s);
+      });
     }
 
-    function logout(){
-      localStorage.removeItem(LS.user);
-      state.user = null; state.role = 'rep';
-      $('viewApp').classList.add('hidden');
-      $('viewLogin').classList.remove('hidden');
-      $('btnLogout').classList.add('hidden');
-      $('userLine').textContent = 'Not signed in';
+    function statusColor(status){
+      // Marker hue approximation
+      switch(status){
+        case 'New Lead': return '#60a5fa';
+        case 'Quoted': return '#f59e0b';
+        case 'Follow-Up Needed': return '#a855f7';
+        case 'Booked': return '#22c55e';
+        case 'No Answer': return '#94a3b8';
+        case 'Not Interested': return '#ef4444';
+        case 'Do Not Knock': return '#ef4444';
+        default: return '#94a3b8';
+      }
     }
 
-    function applyAuth(){
-      $('viewLogin').classList.add('hidden');
-      $('viewApp').classList.remove('hidden');
-      $('btnLogout').classList.remove('hidden');
+    function makeMarkerIcon(color){
+      // Simple SVG pin icon
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24">
+          <path fill="${color}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+        </svg>`;
+      return {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+        scaledSize: new google.maps.Size(28, 28),
+        anchor: new google.maps.Point(14, 28)
+      };
+    }
 
+    async function initMap(){
+      await loadGoogleMaps();
+      map = new google.maps.Map($('mapCanvas'), {
+        center: DEFAULT_CENTER,
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+      geocoder = new google.maps.Geocoder();
+
+      // Address autocomplete
+      try{
+        const input = $('searchAddress');
+        const ac = new google.maps.places.Autocomplete(input, { fields: ['geometry','formatted_address','name'] });
+        ac.addListener('place_changed', ()=>{
+          const place = ac.getPlace();
+          if(place?.geometry?.location){
+            map.panTo(place.geometry.location);
+            map.setZoom(16);
+          }
+        });
+      } catch { /* Places optional */ }
+
+      // Map click: quick pin
+      map.addListener('click', (e)=>{
+        openPinModal({ lat: e.latLng.lat(), lng: e.latLng.lng(), status: 'New Lead' }, true);
+      });
+    }
+
+    // ============================
+    // APP STATE
+    // ============================
+    let state = {
+      user: null,
+      role: 'rep',
+      tab: 'map',
+      editingPinId: null,
+      pins: [],
+      services: [],
+      addons: [],
+      resources: [],
+      photos: [],
+      quote: {
+        lines: [],
+        addons: [],
+        customer: {name:'', phone:'', address:''},
+        pinId: null
+      }
+    };
+
+    // Subscriptions (unsubscribe functions)
+    let unsubPins = null;
+    let unsubServices = null;
+    let unsubAddons = null;
+    let unsubResources = null;
+    let unsubPhotos = null;
+
+    // ============================
+    // COLLECTION PATHS
+    // ============================
+    // Admin-managed:
+    //   services/{serviceId}
+    //   addons/{addonId}
+    // Shared:
+    //   resources/{id}   (admin write, reps read)
+    // Per-user:
+    //   pins (collection) documents include repUid
+    //   quotes (collection) documents include repUid
+    //   photos (collection) documents include repUid
+    // Roles:
+    //   users/{uid} includes role: 'admin' | 'rep'
+
+    // ============================
+    // AUTH + ROLE
+    // ============================
+    async function resolveRole(user){
+      if(!user) return 'rep';
+      if(ADMIN_UIDS.includes(user.uid)) return 'admin';
+      try{
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        const data = snap.exists() ? snap.data() : null;
+        const role = data?.role;
+        if(role==='admin' || role==='rep') return role;
+      } catch {}
+      return 'rep';
+    }
+
+    async function ensureUserDoc(user, role){
+      if(!user) return;
+      const refd = doc(db, 'users', user.uid);
+      const snap = await getDoc(refd);
+      if(!snap.exists()){
+        await setDoc(refd, {
+          email: user.email || null,
+          role: role || 'rep',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge:true });
+      } else {
+        await setDoc(refd, { email: user.email || null, updatedAt: serverTimestamp() }, { merge:true });
+      }
+    }
+
+    function setAuthUI(signedIn){
+      $('viewLogin').classList.toggle('hidden', signedIn);
+      $('viewApp').classList.toggle('hidden', !signedIn);
+      $('btnLogout').classList.toggle('hidden', !signedIn);
+
+      if(!signedIn){
+        $('userLine').textContent = 'Not signed in';
+        $('modePill').textContent = 'Rep View';
+        document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display='none'; });
+        return;
+      }
       $('userLine').textContent = `${state.user.email} • ${state.role.toUpperCase()}`;
       $('modePill').textContent = state.role==='admin' ? 'Admin View' : 'Rep View';
-
-      // Admin-only tab
       document.querySelectorAll('.admin-only').forEach(el=>{
         el.style.display = (state.role==='admin') ? '' : 'none';
       });
-
-      // Default to map tab
-      setTab('map');
-
-      // Render lists
-      refreshAll();
     }
 
-    // ---------- Tabs ----------
+    // ============================
+    // REALTIME SUBSCRIPTIONS
+    // ============================
+    function clearSubs(){
+      [unsubPins, unsubServices, unsubAddons, unsubResources, unsubPhotos].forEach(fn=>{ try{ fn && fn(); } catch{} });
+      unsubPins = unsubServices = unsubAddons = unsubResources = unsubPhotos = null;
+    }
+
+    function subscribeData(){
+      if(!state.user) return;
+      clearSubs();
+
+      // Pins: reps see their own; admin sees all
+      const pinsCol = collection(db, 'pins');
+      const pinsQ = (state.role==='admin')
+        ? query(pinsCol, orderBy('updatedAt','desc'))
+        : query(pinsCol, where('repUid','==', state.user.uid), orderBy('updatedAt','desc'));
+
+      unsubPins = onSnapshot(pinsQ, (snap)=>{
+        state.pins = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        refreshPins();
+        syncMarkers();
+      }, (err)=>toast('Pins error', err.message));
+
+      // Services + addons: everyone can read, admin writes
+      unsubServices = onSnapshot(query(collection(db,'services'), orderBy('name','asc')), (snap)=>{
+        state.services = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        refreshServiceDropdowns();
+        if(state.role==='admin') refreshAdmin();
+      }, (err)=>toast('Services error', err.message));
+
+      unsubAddons = onSnapshot(query(collection(db,'addons'), orderBy('name','asc')), (snap)=>{
+        state.addons = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        refreshServiceDropdowns();
+        if(state.role==='admin') refreshAdmin();
+      }, (err)=>toast('Add-ons error', err.message));
+
+      unsubResources = onSnapshot(query(collection(db,'resources'), orderBy('title','asc')), (snap)=>{
+        state.resources = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        refreshResources();
+      }, (err)=>toast('Resources error', err.message));
+
+      // Photos: reps see their own; admin sees all
+      const photosCol = collection(db, 'photos');
+      const photosQ = (state.role==='admin')
+        ? query(photosCol, orderBy('createdAt','desc'))
+        : query(photosCol, where('repUid','==', state.user.uid), orderBy('createdAt','desc'));
+
+      unsubPhotos = onSnapshot(photosQ, (snap)=>{
+        state.photos = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+        refreshPhotos();
+      }, (err)=>toast('Photos error', err.message));
+    }
+
+    // ============================
+    // TABS
+    // ============================
     function setTab(tab){
       state.tab = tab;
-      document.querySelectorAll('.tab').forEach(t=>{
-        t.classList.toggle('active', t.dataset.tab===tab);
-      });
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
       document.querySelectorAll('.tabpane').forEach(p=>p.classList.add('hidden'));
       $('tab-' + tab).classList.remove('hidden');
 
-      // Update title + primary CTA
       const titles = { map:'Map / Leads', quote:'Quote Builder', photos:'Photos', resources:'Resources', admin:'Admin Panel' };
       $('panelTitle').textContent = titles[tab] || 'Field App';
 
-      // Hide Add Pin button except map
       $('btnAddPin').style.display = tab==='map' ? '' : 'none';
 
-      // If admin tab but rep, force back
       if(tab==='admin' && state.role!=='admin'){
         setTab('map');
         return;
       }
-
-      refreshAll();
     }
 
-    // ---------- Pins ----------
-    function openPinModal(pin=null){
+    // ============================
+    // MAP MARKERS
+    // ============================
+    function syncMarkers(){
+      if(!map) return;
+      const filter = $('filterStatus')?.value || '';
+      const pins = filter ? state.pins.filter(p=>p.status===filter) : state.pins;
+
+      const keep = new Set(pins.map(p=>p.id));
+      // Remove markers that are no longer in view
+      for(const [pinId, mk] of markers.entries()){
+        if(!keep.has(pinId)){
+          mk.setMap(null);
+          markers.delete(pinId);
+        }
+      }
+
+      // Add/update
+      pins.forEach(p=>{
+        const lat = Number(p.lat);
+        const lng = Number(p.lng);
+        if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const color = statusColor(p.status);
+        if(!markers.has(p.id)){
+          const mk = new google.maps.Marker({
+            position: {lat, lng},
+            map,
+            title: p.address || 'Pin',
+            icon: makeMarkerIcon(color)
+          });
+          mk.addListener('click', ()=>openPinModal(p, false));
+          markers.set(p.id, mk);
+        } else {
+          const mk = markers.get(p.id);
+          mk.setPosition({lat, lng});
+          mk.setIcon(makeMarkerIcon(color));
+        }
+      });
+    }
+
+    async function geocodeAddressToLatLng(address){
+      if(!geocoder) throw new Error('Geocoder not ready');
+      const res = await geocoder.geocode({ address });
+      const loc = res?.results?.[0]?.geometry?.location;
+      if(!loc) throw new Error('Could not geocode address');
+      return { lat: loc.lat(), lng: loc.lng() };
+    }
+
+    // ============================
+    // PINS (FIRESTORE)
+    // ============================
+    function openPinModal(pin=null, allowEmpty=true){
       state.editingPinId = pin?.id || null;
-      $('pinModalTitle').textContent = pin ? 'Edit Pin' : 'Add Pin';
-      $('btnPinDelete').style.display = pin ? '' : 'none';
+      $('pinModalTitle').textContent = pin?.id ? 'Edit Pin' : 'Add Pin';
+      $('btnPinDelete').style.display = pin?.id ? '' : 'none';
 
       $('pAddress').value = pin?.address || '';
       $('pStatus').value = pin?.status || 'New Lead';
@@ -971,7 +1221,15 @@
       $('pFollowDate').value = pin?.followDate || '';
       $('pFollowTime').value = pin?.followTime || '';
 
+      $('pLat').value = (pin?.lat ?? '');
+      $('pLng').value = (pin?.lng ?? '');
+
       $('pinModalBack').style.display = 'flex';
+
+      // If lat/lng passed but no address, don’t force it
+      if(!allowEmpty && !pin?.address){
+        $('pAddress').value = '(no address)';
+      }
     }
 
     function closePinModal(){
@@ -979,70 +1237,108 @@
       state.editingPinId = null;
     }
 
-    function savePin(){
-      const pins = getPins();
-      const now = new Date().toISOString();
+    async function savePin(){
+      if(!state.user) return;
+
+      let address = $('pAddress').value.trim();
+      const status = $('pStatus').value;
+      const customerName = $('pName').value.trim();
+      const phone = $('pPhone').value.trim();
+      const notes = $('pNotes').value.trim();
+      const followDate = $('pFollowDate').value;
+      const followTime = $('pFollowTime').value;
+
+      let lat = Number($('pLat').value);
+      let lng = Number($('pLng').value);
+
+      // Try to geocode if missing lat/lng and address is reasonable
+      if((!Number.isFinite(lat) || !Number.isFinite(lng)) && address && address !== '(no address)'){
+        try{
+          const g = await geocodeAddressToLatLng(address);
+          lat = g.lat; lng = g.lng;
+          $('pLat').value = lat;
+          $('pLng').value = lng;
+        } catch(e){
+          // Not fatal
+          toast('Geocode', 'Could not geocode address. You can still save the pin.');
+        }
+      }
+
+      if(!address) address = '(no address)';
+
       const data = {
-        id: state.editingPinId || uid(),
-        address: $('pAddress').value.trim() || '(no address)',
-        status: $('pStatus').value,
-        customerName: $('pName').value.trim(),
-        phone: $('pPhone').value.trim(),
-        notes: $('pNotes').value.trim(),
-        followDate: $('pFollowDate').value,
-        followTime: $('pFollowTime').value,
-        repEmail: state.user?.email || 'unknown',
-        updatedAt: now,
-        createdAt: state.editingPinId ? (pins.find(x=>x.id===state.editingPinId)?.createdAt || now) : now,
-        quoteId: pins.find(x=>x.id===state.editingPinId)?.quoteId || null,
+        address,
+        status,
+        customerName,
+        phone,
+        notes,
+        followDate,
+        followTime,
+        lat: Number.isFinite(lat) ? lat : null,
+        lng: Number.isFinite(lng) ? lng : null,
+        repUid: state.user.uid,
+        repEmail: state.user.email || null,
+        updatedAt: serverTimestamp(),
       };
 
-      const idx = pins.findIndex(x=>x.id===data.id);
-      if(idx>=0) pins[idx]=data; else pins.unshift(data);
-      setPins(pins);
-      closePinModal();
-      refreshPins();
+      try{
+        if(state.editingPinId){
+          await updateDoc(doc(db,'pins', state.editingPinId), data);
+        } else {
+          await addDoc(collection(db,'pins'), {
+            ...data,
+            createdAt: serverTimestamp(),
+            quoteId: null
+          });
+        }
+        closePinModal();
+        toast('Saved', 'Pin saved.');
+      } catch(e){
+        toast('Save failed', e.message);
+      }
     }
 
-    function deletePin(){
-      if(!state.editingPinId) return;
-      const pins = getPins().filter(p=>p.id!==state.editingPinId);
-      setPins(pins);
-      closePinModal();
-      refreshPins();
+    async function deletePin(){
+      if(!state.user || !state.editingPinId) return;
+      if(!confirm('Delete this pin?')) return;
+      try{
+        await deleteDoc(doc(db,'pins', state.editingPinId));
+        closePinModal();
+        toast('Deleted', 'Pin deleted.');
+      } catch(e){
+        toast('Delete failed', e.message);
+      }
     }
 
     function pinToQuote(){
-      // Prefill customer from pin
-      const pin = getPins().find(p=>p.id===state.editingPinId);
+      const pin = state.pins.find(p=>p.id===state.editingPinId);
       if(pin){
         $('qCustomer').value = pin.customerName || '';
         $('qPhone').value = pin.phone || '';
         $('qAddress').value = pin.address || '';
+        state.quote.pinId = pin.id;
       }
       closePinModal();
       setTab('quote');
     }
 
     function refreshPins(){
-      const pins = getPins();
       const filter = $('filterStatus')?.value || '';
+      const pins = filter ? state.pins.filter(p=>p.status===filter) : state.pins;
 
-      const filtered = filter ? pins.filter(p=>p.status===filter) : pins;
-
-      $('pinCount').textContent = `${filtered.length} pins`;
+      $('pinCount').textContent = `${pins.length} pins`;
       const el = $('pinList');
       el.innerHTML = '';
 
-      if(filtered.length===0){
+      if(pins.length===0){
         el.innerHTML = `<div class="hint">No pins yet. Tap <span class="kbd">Add Pin</span> to create your first lead.</div>`;
         return;
       }
 
-      filtered.forEach(p=>{
-        const badge = `<span class="badge ${badgeClass(p.status)}">${p.status}</span>`;
+      pins.forEach(p=>{
+        const badge = `<span class="badge ${badgeClass(p.status)}">${escapeHtml(p.status)}</span>`;
         const follow = (p.followDate || p.followTime) ? ` • Follow-up: ${p.followDate || ''} ${p.followTime || ''}` : '';
-        const meta = `${p.address}${follow}`;
+        const meta = `${p.address || ''}${follow}`;
         const name = p.customerName ? `${p.customerName}` : 'Lead';
         const phone = p.phone ? ` • ${p.phone}` : '';
         const note = p.notes ? ` • ${p.notes}` : '';
@@ -1060,18 +1356,24 @@
             <button class="btn primary" data-act="quote">Quote</button>
           </div>
         `;
-        row.querySelector('[data-act="edit"]').onclick=()=>openPinModal(p);
-        row.querySelector('[data-act="quote"]').onclick=()=>{ openPinModal(p); pinToQuote(); };
+        row.querySelector('[data-act="edit"]').onclick=()=>openPinModal(p, false);
+        row.querySelector('[data-act="quote"]').onclick=()=>{ openPinModal(p, false); pinToQuote(); };
         el.appendChild(row);
       });
     }
 
+    function csvSafe(v){
+      const s = String(v ?? '');
+      if(/[\",\n]/.test(s)) return '"' + s.replaceAll('"','""') + '"';
+      return s;
+    }
+
     function exportPins(){
-      const pins = getPins();
+      const pins = state.pins;
       const csv = [
-        ['id','address','status','customerName','phone','notes','followDate','followTime','repEmail','createdAt','updatedAt','quoteId'].join(',')
+        ['id','address','status','customerName','phone','notes','followDate','followTime','repEmail','lat','lng'].join(',')
       ].concat(pins.map(p=>[
-        p.id, p.address, p.status, p.customerName, p.phone, p.notes, p.followDate, p.followTime, p.repEmail, p.createdAt, p.updatedAt, p.quoteId
+        p.id, p.address, p.status, p.customerName, p.phone, p.notes, p.followDate, p.followTime, p.repEmail, p.lat, p.lng
       ].map(csvSafe).join(','))).join('\n');
 
       const blob = new Blob([csv], {type:'text/csv'});
@@ -1082,10 +1384,13 @@
       URL.revokeObjectURL(url);
     }
 
-    // ---------- Quote Builder ----------
+    // ============================
+    // QUOTES
+    // ============================
     function resetQuote(){
       state.quote.lines=[];
       state.quote.addons=[];
+      state.quote.pinId = null;
       $('qCustomer').value='';
       $('qPhone').value='';
       $('qAddress').value='';
@@ -1093,36 +1398,36 @@
     }
 
     function addServiceLine(){
-      const services = getServices();
       const svcId = $('svcSelect').value;
       const qty = Number($('svcQty').value);
-      const svc = services.find(s=>s.id===svcId);
+      const svc = state.services.find(s=>s.id===svcId);
       if(!svc) return;
-      if(!qty || qty<=0){
-        alert('Enter a quantity greater than 0.');
-        return;
-      }
-      const raw = qty * Number(svc.rate);
-      const total = Math.max(raw, Number(svc.min||0));
+      if(!qty || qty<=0){ alert('Enter a quantity greater than 0.'); return; }
+
+      const rate = Number(svc.rate);
+      const min = Number(svc.min || 0);
+      const raw = qty * rate;
+      const total = Math.max(raw, min);
+
       state.quote.lines.push({
         id: uid(),
         svcId,
         name: svc.name,
         unit: svc.unit,
-        rate: Number(svc.rate),
+        rate,
         qty,
-        min: Number(svc.min||0),
+        min,
         raw,
         total
       });
+
       $('svcQty').value='';
       refreshQuote();
     }
 
     function addPresetAddon(){
-      const addons = getAddons();
       const id = $('addonSelect').value;
-      const a = addons.find(x=>x.id===id);
+      const a = state.addons.find(x=>x.id===id);
       if(!a) return;
       const amt = Number($('addonAmt').value || a.amt || 0);
       state.quote.addons.push({id: uid(), name: a.name, amt});
@@ -1201,77 +1506,160 @@
       $('grandTotal').textContent = money(subtotal);
     }
 
-    function saveQuote(){
-      // Minimal validation
+    async function saveQuote(){
+      if(!state.user) return;
+
       const customer = {
         name: $('qCustomer').value.trim(),
         phone: $('qPhone').value.trim(),
         address: $('qAddress').value.trim(),
       };
+
       if(!customer.address){ alert('Add an address for the quote.'); return; }
       if(state.quote.lines.length===0){ alert('Add at least one service line.'); return; }
 
-      const quotes = getQuotes();
-      const q = {
-        id: uid(),
-        customer,
-        lines: state.quote.lines,
-        addons: state.quote.addons,
-        subtotal: calcSubtotal(),
-        total: calcSubtotal(),
-        status: 'Saved',
-        repEmail: state.user?.email || 'unknown',
-        createdAt: new Date().toISOString(),
+      const total = calcSubtotal();
+
+      try{
+        const qref = await addDoc(collection(db,'quotes'), {
+          customer,
+          lines: state.quote.lines,
+          addons: state.quote.addons,
+          subtotal: total,
+          total,
+          status: 'Saved',
+          repUid: state.user.uid,
+          repEmail: state.user.email || null,
+          pinId: state.quote.pinId || null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        // link to pin if present
+        if(state.quote.pinId){
+          await updateDoc(doc(db,'pins', state.quote.pinId), {
+            quoteId: qref.id,
+            status: 'Quoted',
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        toast('Quote saved', `Quote ID: ${qref.id}`);
+      } catch(e){
+        toast('Save failed', e.message);
+      }
+    }
+
+    function computeDepositAmount(total){
+      if(DEPOSIT_MODE==='flat') return Math.min(total, DEPOSIT_FLAT);
+      return Math.round(total * DEPOSIT_PERCENT * 100) / 100;
+    }
+
+    async function startStripeCheckout(mode){
+      const total = calcSubtotal();
+      if(total<=0){ alert('Build a quote first.'); return; }
+
+      const amount = (mode==='deposit') ? computeDepositAmount(total) : total;
+      const description = (mode==='deposit') ? `CGH Deposit (${Math.round((amount/total)*100)}%)` : 'CGH Payment in Full';
+
+      const payload = {
+        mode,
+        amount,
+        currency: 'usd',
+        description,
+        metadata: {
+          repEmail: state.user?.email || '',
+          pinId: state.quote.pinId || '',
+          total: total
+        }
       };
-      quotes.unshift(q);
-      setQuotes(quotes);
 
-      alert('Quote saved (demo). In production this saves to Firestore and links to the pin.');
+      try{
+        $('btnDeposit').innerHTML = '<span class="spinner"></span> Processing';
+        $('btnPayFull').innerHTML = '<span class="spinner"></span> Processing';
+
+        const res = await fetch(STRIPE_CREATE_SESSION_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data?.error || 'Stripe session failed');
+        if(!data?.url) throw new Error('No checkout URL returned');
+        window.location.href = data.url;
+      } catch(e){
+        toast('Stripe error', e.message);
+      } finally {
+        $('btnDeposit').textContent = 'Collect Deposit';
+        $('btnPayFull').textContent = 'Pay in Full';
+      }
     }
 
-    function collectDeposit(){
-      const total = calcSubtotal();
-      if(total<=0){ alert('Build a quote first.'); return; }
-      alert('Stripe Checkout placeholder.\n\nIn production: create checkout session for deposit, redirect to Stripe, then update quote/pin status on success.');
-    }
-
-    function payInFull(){
-      const total = calcSubtotal();
-      if(total<=0){ alert('Build a quote first.'); return; }
-      alert('Stripe Checkout placeholder.\n\nIn production: create checkout session for full amount, redirect to Stripe, then update quote/pin status on success.');
-    }
-
-    // ---------- Photos ----------
-    function uploadPhoto(){
+    // ============================
+    // PHOTOS
+    // ============================
+    async function uploadPhoto(){
+      if(!state.user) return;
       const f = $('photoFile').files?.[0];
       if(!f){ alert('Choose a file first.'); return; }
-      const photos = getPhotos();
-      photos.unshift({
-        id: uid(),
-        name: f.name,
-        size: f.size,
-        attach: $('photoAttach').value,
-        type: $('photoType').value,
-        notes: $('photoNotes').value.trim(),
-        uploadedBy: state.user?.email || 'unknown',
-        createdAt: new Date().toISOString()
-      });
-      setPhotos(photos);
-      $('photoFile').value='';
-      $('photoNotes').value='';
-      refreshPhotos();
+
+      const attach = $('photoAttach').value;
+      const type = $('photoType').value;
+      const notes = $('photoNotes').value.trim();
+
+      const photoId = uid();
+      const path = `photos/${state.user.uid}/${photoId}_${f.name}`;
+
+      try{
+        $('btnUploadPhoto').innerHTML = '<span class="spinner"></span> Uploading';
+
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, f);
+        const url = await getDownloadURL(storageRef);
+
+        await addDoc(collection(db,'photos'), {
+          repUid: state.user.uid,
+          repEmail: state.user.email || null,
+          attach,
+          type,
+          notes,
+          filename: f.name,
+          size: f.size,
+          storagePath: path,
+          url,
+          createdAt: serverTimestamp()
+        });
+
+        $('photoFile').value='';
+        $('photoNotes').value='';
+        toast('Uploaded', 'Photo uploaded.');
+      } catch(e){
+        toast('Upload failed', e.message);
+      } finally {
+        $('btnUploadPhoto').textContent = 'Upload';
+      }
     }
 
-    function clearPhotos(){
-      if(!confirm('Clear photo list in demo storage?')) return;
-      setPhotos([]);
-      refreshPhotos();
+    async function clearPhotos(){
+      if(state.role!=='admin'){
+        alert('Admin only');
+        return;
+      }
+      if(!confirm('Clear ALL photos (metadata) from Firestore? (This does not delete Storage files unless we add that)')) return;
+      try{
+        const snap = await getDocs(collection(db,'photos'));
+        const dels = snap.docs.map(d=>deleteDoc(doc(db,'photos', d.id)));
+        await Promise.all(dels);
+        toast('Cleared', 'Photos metadata cleared.');
+      } catch(e){
+        toast('Clear failed', e.message);
+      }
     }
 
     function refreshPhotos(){
-      const photos = getPhotos();
       const el = $('photoList');
       el.innerHTML='';
+      const photos = state.photos || [];
       if(photos.length===0){
         el.innerHTML = `<div class="hint">No uploads yet.</div>`;
         return;
@@ -1281,37 +1669,60 @@
         row.className='item';
         row.innerHTML = `
           <div class="left">
-            <div class="name">${escapeHtml(p.name)} <span class="badge b-no">${escapeHtml(p.type)}</span></div>
-            <p class="meta">${escapeHtml(p.attach)} • ${escapeHtml(p.notes||'')} • ${new Date(p.createdAt).toLocaleString()}</p>
+            <div class="name">${escapeHtml(p.filename || 'photo')} <span class="badge b-no">${escapeHtml(p.type || '')}</span></div>
+            <p class="meta">${escapeHtml(p.attach || '')} • ${escapeHtml(p.notes || '')}</p>
+            <p class="meta">${p.url ? `<a href="${p.url}" target="_blank" rel="noreferrer">Open</a>` : ''}</p>
           </div>
-          <div class="small">${Math.round(p.size/1024)} KB</div>
+          <div class="small">${Math.round((p.size||0)/1024)} KB</div>
         `;
         el.appendChild(row);
       });
     }
 
-    // ---------- Resources ----------
-    function addResource(){
+    // ============================
+    // RESOURCES
+    // ============================
+    async function addResource(){
+      if(!state.user) return;
       const cat = $('resCat').value;
       const title = $('resTitle').value.trim();
       const body = $('resBody').value.trim();
       if(!title || !body){ alert('Add both title and content/link.'); return; }
-      const res = getResources();
-      res.unshift({id: uid(), cat, title, body});
-      setResources(res);
-      $('resTitle').value='';
-      $('resBody').value='';
-      refreshResources();
+
+      try{
+        await addDoc(collection(db,'resources'), {
+          cat,
+          title,
+          body,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          createdBy: state.user.email || null
+        });
+        $('resTitle').value='';
+        $('resBody').value='';
+        toast('Added', 'Resource added.');
+      } catch(e){
+        toast('Add failed', e.message);
+      }
     }
 
-    function clearResources(){
-      if(!confirm('Clear resources library in demo storage?')) return;
-      setResources([]);
-      refreshResources();
+    async function clearResources(){
+      if(state.role!=='admin'){
+        alert('Admin only');
+        return;
+      }
+      if(!confirm('Clear resources library?')) return;
+      try{
+        const snap = await getDocs(collection(db,'resources'));
+        await Promise.all(snap.docs.map(d=>deleteDoc(doc(db,'resources', d.id))));
+        toast('Cleared', 'Resources cleared.');
+      } catch(e){
+        toast('Clear failed', e.message);
+      }
     }
 
     function refreshResources(){
-      const res = getResources();
+      const res = state.resources || [];
       const el = $('resList');
       el.innerHTML='';
       if(res.length===0){ el.innerHTML = `<div class="hint">No resources yet.</div>`; return; }
@@ -1323,24 +1734,36 @@
             <div class="name">${escapeHtml(r.title)} <span class="badge b-new">${escapeHtml(r.cat)}</span></div>
             <p class="meta">${escapeHtml(r.body)}</p>
           </div>
-          <button class="btn" title="Remove">✕</button>
+          ${state.role==='admin' ? '<button class="btn" title="Remove">✕</button>' : '<span></span>'}
         `;
-        row.querySelector('button').onclick=()=>{
-          setResources(res.filter(x=>x.id!==r.id));
-          refreshResources();
-        };
+        if(state.role==='admin'){
+          row.querySelector('button').onclick=async()=>{
+            if(!confirm('Remove this resource?')) return;
+            try{
+              await deleteDoc(doc(db,'resources', r.id));
+              toast('Removed', 'Resource removed.');
+            } catch(e){
+              toast('Remove failed', e.message);
+            }
+          };
+        }
         el.appendChild(row);
       });
     }
 
-    // ---------- Admin ----------
+    // ============================
+    // ADMIN (SERVICES + ADDONS)
+    // ============================
+    function slug(s){
+      return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    }
+
     function refreshAdmin(){
       if(state.role!=='admin') return;
 
-      const services = getServices();
-      const addons = getAddons();
+      const services = state.services || [];
+      const addons = state.addons || [];
 
-      // Service list
       const svcEl = $('svcAdminList');
       svcEl.innerHTML='';
       services.forEach(s=>{
@@ -1363,15 +1786,18 @@
           $('aSvcMin').value = s.min;
           $('aSvcName').dataset.editId = s.id;
         };
-        row.querySelector('[data-act="del"]').onclick=()=>{
+        row.querySelector('[data-act="del"]').onclick=async()=>{
           if(!confirm('Delete this service?')) return;
-          setServices(services.filter(x=>x.id!==s.id));
-          refreshAll();
+          try{
+            await deleteDoc(doc(db,'services', s.id));
+            toast('Deleted', 'Service deleted.');
+          } catch(e){
+            toast('Delete failed', e.message);
+          }
         };
         svcEl.appendChild(row);
       });
 
-      // Addon list
       const addEl = $('addonAdminList');
       addEl.innerHTML='';
       addons.forEach(a=>{
@@ -1392,10 +1818,14 @@
           $('aAddAmt').value = a.amt;
           $('aAddName').dataset.editId = a.id;
         };
-        row.querySelector('[data-act="del"]').onclick=()=>{
+        row.querySelector('[data-act="del"]').onclick=async()=>{
           if(!confirm('Delete this add-on?')) return;
-          setAddons(addons.filter(x=>x.id!==a.id));
-          refreshAll();
+          try{
+            await deleteDoc(doc(db,'addons', a.id));
+            toast('Deleted', 'Add-on deleted.');
+          } catch(e){
+            toast('Delete failed', e.message);
+          }
         };
         addEl.appendChild(row);
       });
@@ -1403,8 +1833,8 @@
       refreshServiceDropdowns();
     }
 
-    function adminAddOrUpdateService(){
-      const services = getServices();
+    async function adminAddOrUpdateService(){
+      if(state.role!=='admin') return;
       const name = $('aSvcName').value.trim();
       const unit = $('aSvcUnit').value;
       const rate = Number($('aSvcRate').value);
@@ -1413,128 +1843,194 @@
       if(!rate || rate<=0){ alert('Rate must be > 0'); return; }
 
       const editId = $('aSvcName').dataset.editId;
-      if(editId){
-        const idx = services.findIndex(s=>s.id===editId);
-        if(idx>=0) services[idx] = {...services[idx], name, unit, rate, min};
-        $('aSvcName').dataset.editId = '';
-      } else {
-        services.unshift({id: slug(name), name, unit, rate, min});
+      const id = editId || slug(name);
+
+      try{
+        await setDoc(doc(db,'services', id), {
+          name, unit, rate, min,
+          updatedAt: serverTimestamp()
+        }, { merge:true });
+
+        $('aSvcName').value='';
+        $('aSvcRate').value='';
+        $('aSvcMin').value='';
+        $('aSvcName').dataset.editId='';
+
+        toast('Saved', 'Service saved.');
+      } catch(e){
+        toast('Save failed', e.message);
       }
-      setServices(services);
-      $('aSvcName').value='';
-      $('aSvcRate').value='';
-      $('aSvcMin').value='';
-      refreshAll();
     }
 
-    function adminResetServices(){
+    async function adminResetServices(){
+      if(state.role!=='admin') return;
       if(!confirm('Reset services to defaults?')) return;
-      setServices(defaults.services);
-      refreshAll();
+
+      const defaults = [
+        { id:'house_wash', name:'House Wash', unit:'sqft', rate:0.18, min:249 },
+        { id:'drive_surface', name:'Driveway Surface Clean', unit:'sqft', rate:0.22, min:199 },
+        { id:'roof_wash', name:'Roof Wash', unit:'sqft', rate:0.40, min:399 },
+        { id:'fence_clean', name:'Fence Cleaning', unit:'linear_ft', rate:2.50, min:199 },
+        { id:'gutter_clean', name:'Gutter Cleaning', unit:'linear_ft', rate:1.85, min:149 },
+        { id:'window_clean', name:'Window Cleaning', unit:'each', rate:6.50, min:149 },
+      ];
+
+      try{
+        // wipe existing
+        const snap = await getDocs(collection(db,'services'));
+        await Promise.all(snap.docs.map(d=>deleteDoc(doc(db,'services', d.id))));
+        // add defaults
+        await Promise.all(defaults.map(s=>setDoc(doc(db,'services', s.id), {
+          name:s.name, unit:s.unit, rate:s.rate, min:s.min,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        })));
+        toast('Reset', 'Services reset to defaults.');
+      } catch(e){
+        toast('Reset failed', e.message);
+      }
     }
 
-    function adminAddOrUpdateAddon(){
-      const addons = getAddons();
+    async function adminAddOrUpdateAddon(){
+      if(state.role!=='admin') return;
       const name = $('aAddName').value.trim();
       const amt = Number($('aAddAmt').value);
       if(!name){ alert('Add-on name required'); return; }
       if(!amt || amt<=0){ alert('Amount must be > 0'); return; }
 
       const editId = $('aAddName').dataset.editId;
-      if(editId){
-        const idx = addons.findIndex(a=>a.id===editId);
-        if(idx>=0) addons[idx] = {...addons[idx], name, amt};
-        $('aAddName').dataset.editId = '';
-      } else {
-        addons.unshift({id: slug(name), name, amt});
+      const id = editId || slug(name);
+
+      try{
+        await setDoc(doc(db,'addons', id), {
+          name, amt,
+          updatedAt: serverTimestamp()
+        }, { merge:true });
+
+        $('aAddName').value='';
+        $('aAddAmt').value='';
+        $('aAddName').dataset.editId='';
+
+        toast('Saved', 'Add-on saved.');
+      } catch(e){
+        toast('Save failed', e.message);
       }
-      setAddons(addons);
-      $('aAddName').value='';
-      $('aAddAmt').value='';
-      refreshAll();
     }
 
-    function adminResetAddons(){
+    async function adminResetAddons(){
+      if(state.role!=='admin') return;
       if(!confirm('Reset add-ons to defaults?')) return;
-      setAddons(defaults.addons);
-      refreshAll();
+
+      const defaults = [
+        { id:'heavy', name:'Heavy Buildup', amt:75 },
+        { id:'rust', name:'Rust Treatment', amt:95 },
+        { id:'travel', name:'Travel / Mobilization', amt:50 },
+        { id:'afterhours', name:'After-hours / Weekend', amt:100 },
+      ];
+
+      try{
+        const snap = await getDocs(collection(db,'addons'));
+        await Promise.all(snap.docs.map(d=>deleteDoc(doc(db,'addons', d.id))));
+        await Promise.all(defaults.map(a=>setDoc(doc(db,'addons', a.id), {
+          name:a.name, amt:a.amt,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        })));
+        toast('Reset', 'Add-ons reset to defaults.');
+      } catch(e){
+        toast('Reset failed', e.message);
+      }
     }
 
     function refreshServiceDropdowns(){
-      const services = getServices();
-      const addons = getAddons();
-      $('svcSelect').innerHTML = services.map(s=>`<option value="${s.id}">${escapeHtml(s.name)} — ${money(s.rate)}/${unitLabel(s.unit)} (min ${money(s.min||0)})</option>`).join('');
-      $('addonSelect').innerHTML = addons.map(a=>`<option value="${a.id}">${escapeHtml(a.name)} — ${money(a.amt)}</option>`).join('');
+      const services = state.services || [];
+      const addons = state.addons || [];
 
-      // Autofill addon amount on change
+      $('svcSelect').innerHTML = services.map(s=>
+        `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} — ${money(s.rate)}/${unitLabel(s.unit)} (min ${money(s.min||0)})</option>`
+      ).join('');
+
+      $('addonSelect').innerHTML = addons.map(a=>
+        `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} — ${money(a.amt)}</option>`
+      ).join('');
+
       $('addonSelect').onchange = ()=>{
-        const a = getAddons().find(x=>x.id===$('addonSelect').value);
+        const a = (state.addons || []).find(x=>x.id===$('addonSelect').value);
         $('addonAmt').value = a?.amt ?? '';
       };
+
+      const firstAddon = addons[0];
+      if(firstAddon && !$('addonAmt').value){
+        $('addonAmt').value = firstAddon.amt;
+      }
     }
 
-    // ---------- Quick Filters ----------
+    // ============================
+    // QUICK FILTERS
+    // ============================
     function quickFilter(status){
       $('filterStatus').value = status || '';
       refreshPins();
+      syncMarkers();
     }
 
-    // ---------- Setup Modal ----------
+    // ============================
+    // SETUP MODAL
+    // ============================
     function openSetup(){ $('setupBack').style.display='flex'; }
     function closeSetup(){ $('setupBack').style.display='none'; }
 
-    // ---------- Helpers ----------
-    function csvSafe(v){
-      const s = String(v ?? '');
-      if(/[",\n]/.test(s)) return '"' + s.replaceAll('"','""') + '"';
-      return s;
+    // ============================
+    // WIRE UI
+    // ============================
+    function setLoginState(msg){ $('loginState').textContent = msg; }
+
+    async function doLogin(){
+      const email = $('loginEmail').value.trim();
+      const pass = $('loginPass').value;
+      if(!email || !pass){ alert('Enter email + password'); return; }
+
+      try{
+        setLoginState('Signing in…');
+        await signInWithEmailAndPassword(auth, email, pass);
+        setLoginState('');
+      } catch(e){
+        setLoginState('');
+        toast('Login failed', e.message);
+      }
     }
 
-    function escapeHtml(str){
-      return String(str ?? '').replace(/[&<>"]/g, c=>({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
-      }[c]));
+    async function doForgot(){
+      const email = $('loginEmail').value.trim();
+      if(!email){ alert('Enter your email first'); return; }
+      try{
+        await sendPasswordResetEmail(auth, email);
+        toast('Sent', 'Password reset email sent.');
+      } catch(e){
+        toast('Reset failed', e.message);
+      }
     }
 
-    function slug(s){
-      return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    async function doLogout(){
+      try{ await signOut(auth); } catch(e){ toast('Logout failed', e.message); }
     }
 
-    function refreshAll(){
-      refreshServiceDropdowns();
-      refreshPins();
-      refreshQuote();
-      refreshPhotos();
-      refreshResources();
-      refreshAdmin();
-    }
-
-    // ---------- Wire UI events ----------
     function wire(){
-      $('btnLogin').onclick = ()=>{
-        const email = $('loginEmail').value.trim();
-        if(!email){ alert('Enter an email (demo).'); return; }
-        demoLogin(email);
-      };
-      $('btnDemoAdmin').onclick = ()=>demoLogin('admin@cgh.demo');
-      $('btnDemoRep').onclick = ()=>demoLogin('rep@cgh.demo');
+      $('btnLogin').onclick = doLogin;
+      $('btnForgot').onclick = doForgot;
+      $('btnLogout').onclick = doLogout;
 
-      $('btnLogout').onclick = logout;
+      document.querySelectorAll('.tab').forEach(t=>{ t.onclick = ()=>setTab(t.dataset.tab); });
 
-      document.querySelectorAll('.tab').forEach(t=>{
-        t.onclick = ()=>setTab(t.dataset.tab);
-      });
-
-      $('btnAddPin').onclick = ()=>openPinModal(null);
+      $('btnAddPin').onclick = ()=>openPinModal(null, true);
       $('btnPinClose').onclick = closePinModal;
       $('pinModalBack').onclick = (e)=>{ if(e.target.id==='pinModalBack') closePinModal(); };
 
       $('btnPinSave').onclick = savePin;
       $('btnPinDelete').onclick = deletePin;
-      $('btnPinToQuote').onclick = ()=>{ if(!state.editingPinId){ savePin(); } pinToQuote(); };
+      $('btnPinToQuote').onclick = ()=>{ if(!state.editingPinId) savePin(); pinToQuote(); };
 
-      $('filterStatus').onchange = refreshPins;
-
+      $('filterStatus').onchange = ()=>{ refreshPins(); syncMarkers(); };
       $('btnExport').onclick = exportPins;
 
       $('btnAddService').onclick = addServiceLine;
@@ -1542,8 +2038,8 @@
       $('btnAddAddon').onclick = addPresetAddon;
       $('btnAddCustom').onclick = addCustomAddon;
       $('btnSaveQuote').onclick = saveQuote;
-      $('btnDeposit').onclick = collectDeposit;
-      $('btnPayFull').onclick = payInFull;
+      $('btnDeposit').onclick = ()=>startStripeCheckout('deposit');
+      $('btnPayFull').onclick = ()=>startStripeCheckout('full');
 
       $('btnUploadPhoto').onclick = uploadPhoto;
       $('btnClearPhotos').onclick = clearPhotos;
@@ -1563,26 +2059,50 @@
       $('btnOpenSetup').onclick = openSetup;
       $('btnSetupClose').onclick = closeSetup;
       $('setupBack').onclick = (e)=>{ if(e.target.id==='setupBack') closeSetup(); };
-
-      // Autofill addon amount initial
-      setTimeout(()=>{
-        const a = getAddons()[0];
-        if(a) $('addonAmt').value = a.amt;
-      }, 0);
     }
 
-    // ---------- Boot ----------
-    ensureDefaults();
+    // ============================
+    // BOOT
+    // ============================
     wire();
 
-    const saved = localStorage.getItem(LS.user);
-    if(saved){
+    // Auth listener
+    onAuthStateChanged(auth, async(user)=>{
       try{
-        const x = JSON.parse(saved);
-        state.user = x.user; state.role = x.role;
-        applyAuth();
-      } catch { /* ignore */ }
-    }
+        if(!user){
+          state.user = null;
+          state.role = 'rep';
+          clearSubs();
+          setAuthUI(false);
+          $('userLine').textContent = 'Not signed in';
+          return;
+        }
+
+        state.user = user;
+        state.role = await resolveRole(user);
+        await ensureUserDoc(user, state.role);
+
+        setAuthUI(true);
+        subscribeData();
+
+        // Init map once
+        if(!map){
+          try{
+            await initMap();
+            syncMarkers();
+          } catch(e){
+            toast('Maps not ready', e.message);
+          }
+        }
+
+        // Default tab
+        setTab('map');
+
+      } catch(e){
+        toast('Init error', e.message);
+      }
+    });
+
   </script>
 </body>
 </html>
